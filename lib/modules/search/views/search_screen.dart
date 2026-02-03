@@ -25,12 +25,12 @@ class _SearchScreenState extends State<SearchScreen> {
   final FocusNode _focusNode = FocusNode();
   final List<String> _recentKeywords = ['Burger', 'Sandwich', 'Pizza', 'Sanwic'];
   Timer? _debounceTimer;
-  
+
   List<FoodItem> _searchProducts = [];
   List<Restaurant> _searchRestaurants = [];
   bool _isSearching = false;
   bool _hasSearched = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -68,7 +68,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _onSearchChanged(String query) {
     _debounceTimer?.cancel();
-    
+
     if (query.trim().isEmpty) {
       setState(() {
         _searchProducts.clear();
@@ -103,36 +103,23 @@ class _SearchScreenState extends State<SearchScreen> {
       final queryLower = query.toLowerCase();
 
       // Search products
-      final productsSnapshot = await FirebaseService.firestore
-          .collection('products')
-          .where('isActive', isEqualTo: true)
-          .where('isAvailable', isEqualTo: true)
-          .get();
+      final productsSnapshot = await FirebaseService.firestore.collection('products').where('isActive', isEqualTo: true).where('isAvailable', isEqualTo: true).get();
 
-      final products = productsSnapshot.docs
-          .map((doc) => FoodItem.fromFirestore(doc.data(), doc.id))
-          .where((product) {
-            final nameMatch = product.name.toLowerCase().contains(queryLower);
-            final categoryMatch = product.categoryName?.toLowerCase().contains(queryLower) ?? false;
-            final restaurantMatch = product.restaurantName.toLowerCase().contains(queryLower);
-            return nameMatch || categoryMatch || restaurantMatch;
-          })
-          .toList();
+      final products = productsSnapshot.docs.map((doc) => FoodItem.fromFirestore(doc.data(), doc.id)).where((product) {
+        final nameMatch = product.name.toLowerCase().contains(queryLower);
+        final categoryMatch = product.categoryName?.toLowerCase().contains(queryLower) ?? false;
+        final restaurantMatch = product.restaurantName.toLowerCase().contains(queryLower);
+        return nameMatch || categoryMatch || restaurantMatch;
+      }).toList();
 
       // Search restaurants
-      final restaurantsSnapshot = await FirebaseService.firestore
-          .collection('restaurants')
-          .where('isActive', isEqualTo: true)
-          .get();
+      final restaurantsSnapshot = await FirebaseService.firestore.collection('restaurants').where('isActive', isEqualTo: true).get();
 
-      final restaurants = restaurantsSnapshot.docs
-          .map((doc) => Restaurant.fromFirestore(doc.data(), doc.id))
-          .where((restaurant) {
-            final nameMatch = restaurant.name.toLowerCase().contains(queryLower);
-            final cuisinesMatch = restaurant.cuisines.toLowerCase().contains(queryLower);
-            return nameMatch || cuisinesMatch;
-          })
-          .toList();
+      final restaurants = restaurantsSnapshot.docs.map((doc) => Restaurant.fromFirestore(doc.data(), doc.id)).where((restaurant) {
+        final nameMatch = restaurant.name.toLowerCase().contains(queryLower);
+        final cuisinesMatch = restaurant.cuisines.toLowerCase().contains(queryLower);
+        return nameMatch || cuisinesMatch;
+      }).toList();
 
       if (mounted) {
         setState(() {
@@ -159,17 +146,17 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: Sizes.s12),
           child: Column(
-        children: [
+            children: [
               // Header
               _buildHeader(),
               const SizedBox(height: Sizes.s16),
-              
+
               // Search Bar
               _buildSearchBar(),
               const SizedBox(height: Sizes.s24),
-              
+
               // Content
-          Expanded(
+              Expanded(
                 child: _hasSearched
                     ? _buildSearchResults()
                     : SingleChildScrollView(
@@ -179,11 +166,11 @@ class _SearchScreenState extends State<SearchScreen> {
                             // Recent Keywords Section
                             _buildRecentKeywordsSection(),
                             const SizedBox(height: Sizes.s32),
-                            
+
                             // Suggested Restaurants Section
                             _buildSuggestedRestaurantsSection(),
                             const SizedBox(height: Sizes.s32),
-                            
+
                             // Popular Fast Food Section
                             _buildPopularFastFoodSection(),
                             const SizedBox(height: Sizes.s32),
@@ -201,7 +188,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _buildHeader() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
-                      children: [
+      children: [
         // Back Button
         IconButton(
           icon: Container(
@@ -210,37 +197,22 @@ class _SearchScreenState extends State<SearchScreen> {
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: isDark
-                      ? Colors.black.withOpacity(0.3)
-                      : Colors.black.withOpacity(0.05),
-                  blurRadius: Sizes.s4,
-                  offset: const Offset(0, Sizes.s2),
-                ),
-              ],
+              boxShadow: [BoxShadow(color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05), blurRadius: Sizes.s4, offset: const Offset(0, Sizes.s2))],
             ),
-            child: Icon(
-              TablerIconsHelper.arrowLeft,
-              color: Theme.of(context).colorScheme.onSurface,
-              size: Sizes.s20,
-            ),
+            child: Icon(TablerIconsHelper.arrowLeft, color: Theme.of(context).colorScheme.onSurface, size: Sizes.s20),
           ),
           onPressed: () => Navigator.pop(context),
         ),
         const SizedBox(width: Sizes.s8),
-        
+
         // Search Title
         Expanded(
-                          child: Text(
+          child: Text(
             'Search',
-            style: AppTextStyles.heading2.copyWith(
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
+            style: AppTextStyles.heading2.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
           ),
         ),
-        
+
         // Cart Icon
         Builder(
           builder: (context) {
@@ -248,11 +220,7 @@ class _SearchScreenState extends State<SearchScreen> {
             return Stack(
               children: [
                 IconButton(
-                  icon: Icon(
-                    TablerIconsHelper.shoppingBag,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    size: Sizes.s24,
-                  ),
+                  icon: Icon(TablerIconsHelper.shoppingBag, color: Theme.of(context).colorScheme.onSurface, size: Sizes.s24),
                   onPressed: () {
                     Navigator.pushNamed(context, Routes.cart);
                   },
@@ -264,17 +232,11 @@ class _SearchScreenState extends State<SearchScreen> {
                     child: Container(
                       width: Sizes.s18,
                       height: Sizes.s18,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFF6B35),
-                        shape: BoxShape.circle,
-                      ),
+                      decoration: const BoxDecoration(color: Color(0xFFFF6B35), shape: BoxShape.circle),
                       child: Center(
                         child: Text(
                           itemCount > 99 ? '99+' : itemCount.toString(),
-                          style: AppTextStyles.captionTiny.copyWith(
-                            color: Colors.white,
-                            fontSize: Sizes.s10,
-                          ),
+                          style: AppTextStyles.captionTiny.copyWith(color: Colors.white, fontSize: Sizes.s10),
                         ),
                       ),
                     ),
@@ -291,58 +253,30 @@ class _SearchScreenState extends State<SearchScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: Sizes.s48,
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade800 : const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(Sizes.s12),
-      ),
+      decoration: BoxDecoration(color: isDark ? Colors.grey.shade800 : const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(Sizes.s12)),
       child: TextField(
         controller: _searchController,
         focusNode: _focusNode,
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
         onChanged: _onSearchChanged,
         decoration: InputDecoration(
           hintText: 'Pizza',
-          hintStyle: AppTextStyles.bodyLargeSecondary.copyWith(
-            fontSize: Sizes.s14,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-          ),
-          prefixIcon: Icon(
-            TablerIconsHelper.search,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-            size: Sizes.s20,
-          ),
+          hintStyle: AppTextStyles.bodyLargeSecondary.copyWith(fontSize: Sizes.s14, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+          prefixIcon: Icon(TablerIconsHelper.search, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), size: Sizes.s20),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
                   icon: Container(
                     width: Sizes.s20,
                     height: Sizes.s20,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      TablerIconsHelper.close,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                      size: Sizes.s14,
-                    ),
+                    decoration: BoxDecoration(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2), shape: BoxShape.circle),
+                    child: Icon(TablerIconsHelper.close, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), size: Sizes.s14),
                   ),
                   onPressed: _handleClear,
                 )
               : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(Sizes.s12),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(Sizes.s12),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(Sizes.s12),
-            borderSide: BorderSide.none,
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(Sizes.s12), borderSide: BorderSide.none),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(Sizes.s12), borderSide: BorderSide.none),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(Sizes.s12), borderSide: BorderSide.none),
           filled: true,
           fillColor: isDark ? Colors.grey.shade800 : const Color(0xFFF5F5F5),
           contentPadding: const EdgeInsets.symmetric(horizontal: Sizes.s16, vertical: Sizes.s12),
@@ -357,21 +291,14 @@ class _SearchScreenState extends State<SearchScreen> {
       children: [
         Text(
           'Recent Keywords',
-          style: AppTextStyles.heading3.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+          style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
         ),
         const SizedBox(height: Sizes.s16),
         Wrap(
           spacing: Sizes.s12,
           runSpacing: Sizes.s12,
           children: _recentKeywords.asMap().entries.map((entry) {
-            return AnimatedListItem(
-              index: entry.key,
-              delay: const Duration(milliseconds: 30),
-              child: _buildKeywordChip(entry.value),
-            );
+            return AnimatedListItem(index: entry.key, delay: const Duration(milliseconds: 30), child: _buildKeywordChip(entry.value));
           }).toList(),
         ),
       ],
@@ -385,27 +312,15 @@ class _SearchScreenState extends State<SearchScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(Sizes.s20),
-        border: Border.all(
-          color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-          width: 1,
-        ),
+        border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300, width: 1),
       ),
-      child: Text(
-        keyword,
-        style: AppTextStyles.bodyMedium.copyWith(
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-      ),
+      child: Text(keyword, style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.onSurface)),
     );
   }
 
   Widget _buildSuggestedRestaurantsSection() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseService.firestore
-          .collection('restaurants')
-          .where('isActive', isEqualTo: true)
-          .where('isOpen', isEqualTo: true)
-          .snapshots(),
+      stream: FirebaseService.firestore.collection('restaurants').where('isActive', isEqualTo: true).where('isOpen', isEqualTo: true).snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox.shrink();
@@ -415,9 +330,7 @@ class _SearchScreenState extends State<SearchScreen> {
           return const SizedBox.shrink();
         }
 
-        final restaurants = snapshot.data!.docs
-            .map((doc) => Restaurant.fromFirestore(doc.data() as Map<String, dynamic>, doc.id))
-            .toList()
+        final restaurants = snapshot.data!.docs.map((doc) => Restaurant.fromFirestore(doc.data() as Map<String, dynamic>, doc.id)).toList()
           ..sort((a, b) => b.rating.compareTo(a.rating));
 
         final suggestedRestaurants = restaurants.take(3).toList();
@@ -431,10 +344,7 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             Text(
               'Suggested Restaurants',
-              style: AppTextStyles.heading3.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+              style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
             ),
             const SizedBox(height: Sizes.s16),
             ...suggestedRestaurants.asMap().entries.map((entry) {
@@ -448,11 +358,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     onTap: () {
                       Navigator.pushNamed(context, Routes.restaurantView, arguments: restaurant);
                     },
-                    child: _buildRestaurantItem(
-                      name: restaurant.name,
-                      rating: restaurant.rating,
-                      imageUrl: restaurant.imageUrl,
-                    ),
+                    child: _buildRestaurantItem(name: restaurant.name, rating: restaurant.rating, imageUrl: restaurant.imageUrl),
                   ),
                 ),
               );
@@ -463,11 +369,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildRestaurantItem({
-    required String name,
-    required double rating,
-    required String imageUrl,
-  }) {
+  Widget _buildRestaurantItem({required String name, required double rating, required String imageUrl}) {
     return Row(
       children: [
         // Restaurant Image
@@ -481,31 +383,19 @@ class _SearchScreenState extends State<SearchScreen> {
             placeholder: (context, url) => Container(
               width: Sizes.s80,
               height: Sizes.s80,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade800
-                  : Colors.grey.shade300,
-              child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade300,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary)),
             ),
             errorWidget: (context, url, error) => Container(
               width: Sizes.s80,
               height: Sizes.s80,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade800
-                  : Colors.grey.shade300,
-              child: Icon(
-                TablerIconsHelper.restaurant,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-              ),
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade300,
+              child: Icon(TablerIconsHelper.restaurant, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
             ),
           ),
         ),
         const SizedBox(width: Sizes.s16),
-        
+
         // Restaurant Info
         Expanded(
           child: Column(
@@ -513,43 +403,29 @@ class _SearchScreenState extends State<SearchScreen> {
             children: [
               Text(
                 name,
-                style: AppTextStyles.heading3.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
+                style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
               ),
               const SizedBox(height: Sizes.s4),
               Row(
                 children: [
-                  const Icon(
-                    TablerIconsHelper.star,
-                    color: Color(0xFFFF6B35),
-                    size: Sizes.s16,
-                  ),
+                  const Icon(TablerIconsHelper.star, color: Color(0xFFFF6B35), size: Sizes.s16),
                   const SizedBox(width: Sizes.s4),
                   Text(
                     rating.toString(),
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
+                    style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurface),
                   ),
                 ],
               ),
             ],
           ),
-              ),
-            ],
-          );
+        ),
+      ],
+    );
   }
 
   Widget _buildPopularFastFoodSection() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseService.firestore
-          .collection('products')
-          .where('isActive', isEqualTo: true)
-          .where('isAvailable', isEqualTo: true)
-          .snapshots(),
+      stream: FirebaseService.firestore.collection('products').where('isActive', isEqualTo: true).where('isAvailable', isEqualTo: true).snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox.shrink();
@@ -559,9 +435,7 @@ class _SearchScreenState extends State<SearchScreen> {
           return const SizedBox.shrink();
         }
 
-        final products = snapshot.data!.docs
-            .map((doc) => FoodItem.fromFirestore(doc.data() as Map<String, dynamic>, doc.id))
-            .toList();
+        final products = snapshot.data!.docs.map((doc) => FoodItem.fromFirestore(doc.data() as Map<String, dynamic>, doc.id)).toList();
 
         final popularProducts = products.take(2).toList();
 
@@ -574,10 +448,7 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             Text(
               'Popular Fast Food',
-              style: AppTextStyles.heading3.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+              style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
             ),
             const SizedBox(height: Sizes.s16),
             ...popularProducts.asMap().entries.map((entry) {
@@ -591,11 +462,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     onTap: () {
                       Navigator.pushNamed(context, Routes.itemDetail, arguments: product);
                     },
-                    child: _buildFastFoodCard(
-                      foodName: product.name,
-                      restaurantName: product.restaurantName,
-                      imageUrl: product.imageUrl,
-                    ),
+                    child: _buildFastFoodCard(foodName: product.name, restaurantName: product.restaurantName, imageUrl: product.imageUrl),
                   ),
                 ),
               );
@@ -606,35 +473,20 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildFastFoodCard({
-    required String foodName,
-    required String restaurantName,
-    required String imageUrl,
-  }) {
+  Widget _buildFastFoodCard({required String foodName, required String restaurantName, required String imageUrl}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(Sizes.s16),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.3)
-                : Colors.black.withOpacity(0.05),
-            blurRadius: Sizes.s8,
-            offset: const Offset(0, Sizes.s2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05), blurRadius: Sizes.s8, offset: const Offset(0, Sizes.s2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Food Image
           ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(Sizes.s16),
-              topRight: Radius.circular(Sizes.s16),
-            ),
+            borderRadius: const BorderRadius.only(topLeft: Radius.circular(Sizes.s16), topRight: Radius.circular(Sizes.s16)),
             child: CachedNetworkImage(
               imageUrl: imageUrl,
               width: double.infinity,
@@ -643,31 +495,18 @@ class _SearchScreenState extends State<SearchScreen> {
               placeholder: (context, url) => Container(
                 width: double.infinity,
                 height: Sizes.s160,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade800
-                    : Colors.grey.shade300,
-                child: Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade300,
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary)),
               ),
               errorWidget: (context, url, error) => Container(
                 width: double.infinity,
                 height: Sizes.s160,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade800
-                    : Colors.grey.shade300,
-                child: Icon(
-                  TablerIconsHelper.restaurant,
-                  size: Sizes.s64,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-                ),
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade300,
+                child: Icon(TablerIconsHelper.restaurant, size: Sizes.s64, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
               ),
             ),
           ),
-          
+
           // Food Info
           Padding(
             padding: const EdgeInsets.all(Sizes.s16),
@@ -676,18 +515,12 @@ class _SearchScreenState extends State<SearchScreen> {
               children: [
                 Text(
                   foodName,
-                  style: AppTextStyles.heading3.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
+                  style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const SizedBox(height: Sizes.s4),
                 Text(
                   restaurantName,
-                  style: AppTextStyles.bodySmallSecondary.copyWith(
-                    fontSize: Sizes.s12,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  ),
+                  style: AppTextStyles.bodySmallSecondary.copyWith(fontSize: Sizes.s12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
                 ),
               ],
             ),
@@ -699,9 +532,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildSearchResults() {
     if (_isSearching) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_searchProducts.isEmpty && _searchRestaurants.isEmpty) {
@@ -709,25 +540,11 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              TablerIconsHelper.search,
-              size: Sizes.s80,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-            ),
+            Icon(TablerIconsHelper.search, size: Sizes.s80, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3)),
             const SizedBox(height: Sizes.s24),
-            Text(
-              'No results found',
-              style: AppTextStyles.heading2.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
+            Text('No results found', style: AppTextStyles.heading2.copyWith(color: Theme.of(context).colorScheme.onSurface)),
             const SizedBox(height: Sizes.s8),
-            Text(
-              'Try searching for something else',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
+            Text('Try searching for something else', style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
           ],
         ),
       );
@@ -743,10 +560,7 @@ class _SearchScreenState extends State<SearchScreen> {
               padding: const EdgeInsets.symmetric(horizontal: Sizes.s0),
               child: Text(
                 'Products (${_searchProducts.length})',
-                style: AppTextStyles.heading3.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
+                style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
               ),
             ),
             const SizedBox(height: Sizes.s16),
@@ -768,10 +582,7 @@ class _SearchScreenState extends State<SearchScreen> {
               padding: const EdgeInsets.symmetric(horizontal: Sizes.s0),
               child: Text(
                 'Restaurants (${_searchRestaurants.length})',
-                style: AppTextStyles.heading3.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
+                style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
               ),
             ),
             const SizedBox(height: Sizes.s16),
@@ -802,25 +613,14 @@ class _SearchScreenState extends State<SearchScreen> {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(Sizes.s16),
-          boxShadow: [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withOpacity(0.3)
-                  : Colors.black.withOpacity(0.05),
-              blurRadius: Sizes.s8,
-              offset: const Offset(0, Sizes.s2),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05), blurRadius: Sizes.s8, offset: const Offset(0, Sizes.s2))],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Product Image
             ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(Sizes.s16),
-                bottomLeft: Radius.circular(Sizes.s16),
-              ),
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(Sizes.s16), bottomLeft: Radius.circular(Sizes.s16)),
               child: CachedNetworkImage(
                 imageUrl: product.imageUrl,
                 width: Sizes.s120,
@@ -830,21 +630,13 @@ class _SearchScreenState extends State<SearchScreen> {
                   width: Sizes.s120,
                   height: Sizes.s120,
                   color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
+                  child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary)),
                 ),
                 errorWidget: (context, url, error) => Container(
                   width: Sizes.s120,
                   height: Sizes.s120,
                   color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                  child: Icon(
-                    TablerIconsHelper.restaurant,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-                  ),
+                  child: Icon(TablerIconsHelper.restaurant, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
                 ),
               ),
             ),
@@ -858,19 +650,14 @@ class _SearchScreenState extends State<SearchScreen> {
                   children: [
                     Text(
                       product.name,
-                      style: AppTextStyles.heading3.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
+                      style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: Sizes.s4),
                     Text(
                       product.restaurantName,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                      ),
+                      style: AppTextStyles.bodySmall.copyWith(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -880,25 +667,15 @@ class _SearchScreenState extends State<SearchScreen> {
                       children: [
                         Text(
                           '\$${product.basePrice.toInt()}',
-                          style: AppTextStyles.heading3.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFFF6B35),
-                          ),
+                          style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFFFF6B35)),
                         ),
                         GestureDetector(
                           onTap: () => _addToCart(product),
                           child: Container(
                             width: Sizes.s32,
                             height: Sizes.s32,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFF6B35),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              TablerIconsHelper.plus,
-                              color: Colors.white,
-                              size: Sizes.s16,
-                            ),
+                            decoration: const BoxDecoration(color: Color(0xFFFF6B35), shape: BoxShape.circle),
+                            child: const Icon(TablerIconsHelper.plus, color: Colors.white, size: Sizes.s16),
                           ),
                         ),
                       ],
@@ -923,24 +700,13 @@ class _SearchScreenState extends State<SearchScreen> {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(Sizes.s16),
-          boxShadow: [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withOpacity(0.3)
-                  : Colors.black.withOpacity(0.05),
-              blurRadius: Sizes.s8,
-              offset: const Offset(0, Sizes.s2),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05), blurRadius: Sizes.s8, offset: const Offset(0, Sizes.s2))],
         ),
         child: Row(
           children: [
             // Restaurant Image
             ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(Sizes.s16),
-                bottomLeft: Radius.circular(Sizes.s16),
-              ),
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(Sizes.s16), bottomLeft: Radius.circular(Sizes.s16)),
               child: CachedNetworkImage(
                 imageUrl: restaurant.imageUrl,
                 width: Sizes.s120,
@@ -950,26 +716,18 @@ class _SearchScreenState extends State<SearchScreen> {
                   width: Sizes.s120,
                   height: Sizes.s120,
                   color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
+                  child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary)),
                 ),
                 errorWidget: (context, url, error) => Container(
                   width: Sizes.s120,
                   height: Sizes.s120,
                   color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                  child: Icon(
-                    TablerIconsHelper.restaurant,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-                  ),
+                  child: Icon(TablerIconsHelper.restaurant, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
                 ),
               ),
             ),
             const SizedBox(width: Sizes.s16),
-            
+
             // Restaurant Info
             Expanded(
               child: Padding(
@@ -979,51 +737,32 @@ class _SearchScreenState extends State<SearchScreen> {
                   children: [
                     Text(
                       restaurant.name,
-                      style: AppTextStyles.heading3.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
+                      style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: Sizes.s4),
                     Text(
                       restaurant.cuisines,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                      ),
+                      style: AppTextStyles.bodySmall.copyWith(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: Sizes.s8),
                     Row(
                       children: [
-                        const Icon(
-                          TablerIconsHelper.star,
-                          color: Color(0xFFFF6B35),
-                          size: Sizes.s16,
-                        ),
+                        const Icon(TablerIconsHelper.star, color: Color(0xFFFF6B35), size: Sizes.s16),
                         const SizedBox(width: Sizes.s4),
                         Text(
                           restaurant.rating.toString(),
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurface),
                         ),
                         const SizedBox(width: Sizes.s16),
-                        const Icon(
-                          TablerIconsHelper.delivery,
-                          color: Color(0xFFFF6B35),
-                          size: Sizes.s16,
-                        ),
+                        const Icon(TablerIconsHelper.delivery, color: Color(0xFFFF6B35), size: Sizes.s16),
                         const SizedBox(width: Sizes.s4),
                         Text(
                           restaurant.deliveryCost,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurface),
                         ),
                       ],
                     ),

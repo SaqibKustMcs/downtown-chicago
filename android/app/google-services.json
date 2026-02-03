@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "5238107802",
+    "project_id": "food-restaurant-app-1ea6e",
+    "storage_bucket": "food-restaurant-app-1ea6e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:5238107802:android:e412c5646aaaf0a533b923",
+        "android_client_info": {
+          "package_name": "com.app.food_flow_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWPUOtHAznMcW1UAYeVVKok22WXgJUshs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

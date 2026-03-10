@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:food_flow_app/core/di/dependency_injection.dart';
-import 'package:food_flow_app/core/firebase/firebase_service.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/modules/auth/widgets/custom_text_field.dart';
-import 'package:food_flow_app/styles/colors/custom_colors.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/di/dependency_injection.dart';
+import 'package:downtown/core/firebase/firebase_service.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/modules/auth/widgets/custom_text_field.dart';
+import 'package:downtown/styles/colors/custom_colors.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -59,16 +59,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       try {
         await currentUser.reauthenticateWithCredential(credential);
       } on FirebaseAuthException catch (e) {
-        if (e.code == 'wrong-password') {
-          throw Exception('Current password is incorrect');
-        } else if (e.code == 'user-mismatch') {
-          throw Exception('User mismatch. Please log out and log back in.');
-        } else if (e.code == 'user-not-found') {
-          throw Exception('User not found. Please log out and log back in.');
-        } else if (e.code == 'invalid-credential') {
-          throw Exception('Invalid current password');
+        // Generic error message for security - don't reveal which credential is wrong
+        if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+          throw Exception('AUTH_FAILED'); // Generic marker, will show generic message
+        } else if (e.code == 'user-mismatch' || e.code == 'user-not-found') {
+          throw Exception('AUTH_FAILED'); // Generic marker
         } else {
-          throw Exception('Re-authentication failed: ${e.message}');
+          throw Exception('AUTH_FAILED'); // Generic marker
         }
       }
 
@@ -106,16 +103,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       
       switch (e.code) {
         case 'network-request-failed':
-          errorMessage = 'Network error. Please check your internet connection and try again.';
+          errorMessage = 'Network error. Please check your connection.';
           break;
         case 'weak-password':
-          errorMessage = 'New password is too weak. Please use a stronger password.';
+          errorMessage = 'Password is too weak. Use a stronger password.';
           break;
         case 'requires-recent-login':
-          errorMessage = 'For security reasons, please log out and log back in before changing your password.';
+          errorMessage = 'Please log out and log back in first.';
           break;
         default:
-          errorMessage = e.message ?? 'Failed to change password. Please try again.';
+          // Always use generic message - never show raw Firebase error messages
+          errorMessage = 'Failed to change password. Please try again.';
       }
       
       if (mounted) {
@@ -123,17 +121,25 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           SnackBar(
             content: Text(errorMessage),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
+        // Always show generic error message for security - never reveal specific error details
+        String errorMessage = 'Failed to change password. Please check your credentials and try again.';
+        
+        // Check if it's our generic auth failure marker
+        if (e is Exception && e.toString().contains('AUTH_FAILED')) {
+          errorMessage = 'Authentication failed. Please check your current password.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('An error occurred: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -221,6 +227,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                             });
                           },
                         ),
+                        onChanged: (value) {
+                          // Re-validate new password field when current password changes
+                          if (_formKey.currentState != null && _newPasswordController.text.isNotEmpty) {
+                            _formKey.currentState!.validate();
+                          }
+                        },
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your current password';
@@ -261,6 +273,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                             });
                           },
                         ),
+                        onChanged: (value) {
+                          // Clear validation errors when user types
+                          if (_formKey.currentState != null) {
+                            _formKey.currentState!.validate();
+                          }
+                        },
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your new password';
@@ -268,8 +286,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           if (value.length < 6) {
                             return 'Password must be at least 6 characters';
                           }
-                          if (value == _currentPasswordController.text) {
-                            return 'New password must be different from current password';
+                          if (value == _currentPasswordController.text.trim()) {
+                            return 'New password must be different';
                           }
                           return null;
                         },

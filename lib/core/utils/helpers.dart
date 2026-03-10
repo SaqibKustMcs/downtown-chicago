@@ -9,23 +9,12 @@ class Helpers {
   }
 
   static Future<bool> checkConnectivity() async {
-    var connectivityResult = await (Connectivity().checkConnectivity());
-    switch (connectivityResult) {
-      case ConnectivityResult.wifi:
-      case ConnectivityResult.mobile:
-      case ConnectivityResult.ethernet:
-      case ConnectivityResult.vpn:
-        return true;
-      case ConnectivityResult.none:
-        return false;
-      case ConnectivityResult.bluetooth:
-      case ConnectivityResult.other:
-        // For unknown connection types, assume online (let API call determine)
-        return true;
-      default:
-        // Fallback: assume online to let API call determine actual connectivity
-        return true;
+    final results = await Connectivity().checkConnectivity();
+    if (results.contains(ConnectivityResult.none) && results.length == 1) {
+      return false;
     }
+    // Has at least one connection type (wifi, mobile, ethernet, vpn, etc.)
+    return true;
   }
 
   static String getServerTimeFromMillis(int? timeInMillis, {DateFormat? format}) {

@@ -2,16 +2,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:food_flow_app/core/widgets/animated_list_item.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/core/firebase/firebase_service.dart';
-import 'package:food_flow_app/core/di/dependency_injection.dart';
-import 'package:food_flow_app/models/food_item_model.dart';
-import 'package:food_flow_app/models/restaurant_model.dart';
-import 'package:food_flow_app/models/cart_item_model.dart';
-import 'package:food_flow_app/routes/route_constants.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/widgets/animated_list_item.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/core/utils/currency_formatter.dart';
+import 'package:downtown/core/firebase/firebase_service.dart';
+import 'package:downtown/core/di/dependency_injection.dart';
+import 'package:downtown/models/food_item_model.dart';
+import 'package:downtown/models/restaurant_model.dart';
+import 'package:downtown/models/cart_item_model.dart';
+import 'package:downtown/modules/checkout/controllers/cart_controller.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class CategoryDetailScreen extends StatefulWidget {
   final String categoryName;
@@ -571,32 +573,64 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                   ),
                   const SizedBox(height: Sizes.s8),
 
-                  // Price and Add Button
+                  // Price and Add Button/Quantity Badge
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '\$${item.basePrice.toInt()}',
+                        CurrencyFormatter.formatInt(item.basePrice),
                         style: AppTextStyles.heading3.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () => _addToCart(item),
-                        child: Container(
-                          width: Sizes.s32,
-                          height: Sizes.s32,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFF6B35),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            TablerIconsHelper.plus,
-                            color: Colors.white,
-                            size: Sizes.s16,
-                          ),
-                        ),
+                      // Show quantity badge if product is in cart, otherwise show add button
+                      ListenableBuilder(
+                        listenable: DependencyInjection.instance.cartController,
+                        builder: (context, _) {
+                          final cartController = DependencyInjection.instance.cartController;
+                          final quantity = cartController.getProductQuantity(item.id);
+                          
+                          if (quantity > 0) {
+                            // Show quantity badge
+                            return Container(
+                              width: Sizes.s32,
+                              height: Sizes.s32,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFF6B35),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  quantity.toString(),
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: Sizes.s14,
+                                  ),
+                                ),
+                              ),
+                            );
+                          } else {
+                            // Show add button
+                            return GestureDetector(
+                              onTap: () => _addToCart(item),
+                              child: Container(
+                                width: Sizes.s32,
+                                height: Sizes.s32,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFF6B35),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  TablerIconsHelper.plus,
+                                  color: Colors.white,
+                                  size: Sizes.s16,
+                                ),
+                              ),
+                            );
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -787,13 +821,34 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     // Add to cart
     cartController.addToCart(cartItem);
 
-    // Show success message
+    // Show success message - compact and eye-catching like Foodpanda
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Added ${item.name} to cart'),
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: Sizes.s20),
+            const SizedBox(width: Sizes.s8),
+            Flexible(
+              child: Text(
+                'Added to cart',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
         backgroundColor: const Color(0xFFFF6B35),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.symmetric(horizontal: Sizes.s16, vertical: Sizes.s16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Sizes.s12),
+        ),
+        duration: const Duration(seconds: 2),
         action: SnackBarAction(
-          label: 'View Cart',
+          label: 'View',
           textColor: Colors.white,
           onPressed: () {
             Navigator.pushNamed(context, Routes.cart);

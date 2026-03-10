@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:food_flow_app/core/services/app_preferences_service.dart';
+import 'package:downtown/core/services/app_preferences_service.dart';
 
 class ThemeProvider extends ChangeNotifier {
   

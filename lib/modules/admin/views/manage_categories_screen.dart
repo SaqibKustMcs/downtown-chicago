@@ -1,14 +1,14 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:food_flow_app/core/firebase/firebase_service.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/modules/home/models/category_model.dart';
-import 'package:food_flow_app/modules/widgets/top_navigation_bar.dart';
-import 'package:food_flow_app/modules/auth/widgets/custom_text_field.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:downtown/core/firebase/firebase_service.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/core/widgets/animated_list_item.dart';
+import 'package:downtown/modules/home/models/category_model.dart';
+import 'package:downtown/modules/widgets/top_navigation_bar.dart';
+import 'package:downtown/modules/admin/views/create_edit_category_screen.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class ManageCategoriesScreen extends StatefulWidget {
   const ManageCategoriesScreen({super.key});
@@ -18,167 +18,6 @@ class ManageCategoriesScreen extends StatefulWidget {
 }
 
 class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _orderController = TextEditingController();
-
-  File? _categoryImage;
-  bool _isLoading = false;
-  bool _isUploading = false;
-  bool _isActive = true;
-  CategoryModel? _editingCategory;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _orderController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      setState(() {
-        _categoryImage = File(pickedFile.path);
-      });
-    }
-  }
-
-  Future<String?> _uploadImageToFirebase(File imageFile, String path) async {
-    try {
-      final ref = FirebaseService.storage.ref().child(path);
-      await ref.putFile(imageFile);
-      return await ref.getDownloadURL();
-    } catch (e) {
-      debugPrint('Error uploading image: $e');
-      return null;
-    }
-  }
-
-  void _clearForm() {
-    _nameController.clear();
-    _orderController.clear();
-    setState(() {
-      _categoryImage = null;
-      _isActive = true;
-      _editingCategory = null;
-    });
-  }
-
-  Future<void> _handleSave() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (_categoryImage == null && _editingCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a category image'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _isUploading = true;
-    });
-
-    try {
-      String? imageUrl;
-
-      // Upload image if new image is selected
-      if (_categoryImage != null) {
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        imageUrl = await _uploadImageToFirebase(
-          _categoryImage!,
-          'categories/category_$timestamp.jpg',
-        );
-
-        if (imageUrl == null) {
-          throw Exception('Failed to upload image');
-        }
-      } else if (_editingCategory != null) {
-        // Use existing image if editing
-        imageUrl = _editingCategory!.imageUrl;
-      }
-
-      final categoryData = {
-        'name': _nameController.text.trim(),
-        'imageUrl': imageUrl!,
-        if (_orderController.text.trim().isNotEmpty)
-          'order': int.tryParse(_orderController.text.trim()) ?? 0,
-        'isActive': _isActive,
-        if (_editingCategory == null) 'createdAt': DateTime.now(),
-        'updatedAt': DateTime.now(),
-      };
-
-      if (_editingCategory != null) {
-        // Update existing category
-        await FirebaseService.firestore
-            .collection('categories')
-            .doc(_editingCategory!.id)
-            .update(categoryData);
-      } else {
-        // Create new category
-        await FirebaseService.firestore
-            .collection('categories')
-            .add(categoryData);
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_editingCategory == null
-                ? 'Category created successfully!'
-                : 'Category updated successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        _clearForm();
-      }
-    } catch (e) {
-      debugPrint('Error saving category: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _isUploading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _editCategory(CategoryModel category) async {
-    setState(() {
-      _editingCategory = category;
-      _nameController.text = category.name;
-      _orderController.text = category.order?.toString() ?? '';
-      _isActive = category.isActive;
-      _categoryImage = null; // Don't load existing image, user can change it
-    });
-    // Scroll to form
-    await Future.delayed(const Duration(milliseconds: 100));
-    if (mounted) {
-      Scrollable.ensureVisible(
-        _formKey.currentContext!,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
   Future<void> _deleteCategory(CategoryModel category) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -228,6 +67,30 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
     }
   }
 
+  Future<void> _editCategory(CategoryModel category) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateEditCategoryScreen(category: category),
+      ),
+    );
+    if (result == true && mounted) {
+      // Category was updated, refresh is automatic with StreamBuilder
+    }
+  }
+
+  Future<void> _createCategory() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CreateEditCategoryScreen(),
+      ),
+    );
+    if (result == true && mounted) {
+      // Category was created, refresh is automatic with StreamBuilder
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -239,411 +102,331 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
           children: [
             // Top Navigation
             TopNavigationBar(
-              title: _editingCategory == null
-                  ? 'Manage Categories'
-                  : 'Edit Category',
+              title: 'Categories',
               showBackButton: true,
             ),
 
-            // Content
+            // Categories List
             Expanded(
-              child: Row(
-                children: [
-                  // Categories List
-                  Expanded(
-                    flex: 1,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.grey.shade900
-                            : Colors.grey.shade100,
-                        border: Border(
-                          right: BorderSide(
-                            color: isDark
-                                ? Colors.grey.shade700
-                                : Colors.grey.shade300,
-                          ),
-                        ),
-                      ),
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseService.firestore
+                    .collection('categories')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.all(Sizes.s16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Categories',
-                                  style: AppTextStyles.heading3.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurface,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                if (_editingCategory != null)
-                                  TextButton(
-                                    onPressed: _clearForm,
-                                    child: const Text('New Category'),
-                                  ),
-                              ],
-                            ),
+                          Icon(
+                            Icons.error_outline,
+                            size: Sizes.s48,
+                            color: Theme.of(context).colorScheme.error,
                           ),
-                          Expanded(
-                            child: StreamBuilder<QuerySnapshot>(
-                              stream: FirebaseService.firestore
-                                  .collection('categories')
-                                  .snapshots(),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return const Center(
-                                    child: CircularProgressIndicator(),
-                                  );
-                                }
-
-                                if (snapshot.hasError) {
-                                  return Center(
-                                    child: Text('Error: ${snapshot.error}'),
-                                  );
-                                }
-
-                                if (!snapshot.hasData ||
-                                    snapshot.data!.docs.isEmpty) {
-                                  return Center(
-                                    child: Text(
-                                      'No categories yet',
-                                      style: AppTextStyles.bodyMedium.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.6),
-                                      ),
-                                    ),
-                                  );
-                                }
-
-                                final categories = snapshot.data!.docs
-                                    .map((doc) => CategoryModel.fromFirestore(
-                                          doc.data() as Map<String, dynamic>,
-                                          doc.id,
-                                        ))
-                                    .toList()
-                                  ..sort((a, b) {
-                                    if (a.order != null && b.order != null) {
-                                      return a.order!.compareTo(b.order!);
-                                    } else if (a.order != null) {
-                                      return -1;
-                                    } else if (b.order != null) {
-                                      return 1;
-                                    }
-                                    return a.name.compareTo(b.name);
-                                  });
-
-                                return ListView.builder(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: Sizes.s8,
-                                  ),
-                                  itemCount: categories.length,
-                                  itemBuilder: (context, index) {
-                                    final category = categories[index];
-                                    return Card(
-                                      margin: const EdgeInsets.only(
-                                        bottom: Sizes.s8,
-                                      ),
-                                      child: ListTile(
-                                        leading: CircleAvatar(
-                                          backgroundImage: category.imageUrl
-                                                  .startsWith('http')
-                                              ? NetworkImage(category.imageUrl)
-                                              : null,
-                                          child: category.imageUrl
-                                                  .startsWith('http')
-                                              ? null
-                                              : const Icon(Icons.category),
-                                        ),
-                                        title: Text(category.name),
-                                        subtitle: Text(
-                                          category.isActive
-                                              ? 'Active'
-                                              : 'Inactive',
-                                        ),
-                                        trailing: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            IconButton(
-                                              icon: const Icon(Icons.edit),
-                                              onPressed: () =>
-                                                  _editCategory(category),
-                                            ),
-                                            IconButton(
-                                              icon: const Icon(Icons.delete,
-                                                  color: Colors.red),
-                                              onPressed: () =>
-                                                  _deleteCategory(category),
-                                            ),
-                                          ],
-                                        ),
-                                        selected: _editingCategory?.id ==
-                                            category.id,
-                                        selectedTileColor: const Color(0xFFFF6B35)
-                                            .withOpacity(0.1),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
+                          const SizedBox(height: Sizes.s16),
+                          Text(
+                            'Error loading categories',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: Theme.of(context).colorScheme.error,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
+                    );
+                  }
 
-                  // Form
-                  Expanded(
-                    flex: 1,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(Sizes.s16),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Category Image
-                            Text(
-                              'Category Image *',
-                              style: AppTextStyles.heading3.copyWith(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w600,
-                              ),
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.category,
+                            size: Sizes.s64,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.3),
+                          ),
+                          const SizedBox(height: Sizes.s16),
+                          Text(
+                            'No categories yet',
+                            style: AppTextStyles.heading3.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.6),
                             ),
-                            const SizedBox(height: Sizes.s12),
-                            GestureDetector(
-                              onTap: _pickImage,
-                              child: Container(
-                                height: 150,
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? Colors.grey.shade800
-                                      : Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(Sizes.s16),
-                                  border: Border.all(
-                                    color: isDark
-                                        ? Colors.grey.shade700
-                                        : Colors.grey.shade300,
-                                  ),
-                                ),
-                                child: _categoryImage == null &&
-                                        _editingCategory == null
-                                    ? Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.add_photo_alternate,
-                                            size: Sizes.s48,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withOpacity(0.5),
-                                          ),
-                                          const SizedBox(height: Sizes.s8),
-                                          Text(
-                                            'Tap to add image',
-                                            style: AppTextStyles.bodyMedium
-                                                .copyWith(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withOpacity(0.6),
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : ClipRRect(
-                                        borderRadius:
-                                            BorderRadius.circular(Sizes.s16),
-                                        child: _categoryImage != null
-                                            ? Image.file(
-                                                _categoryImage!,
-                                                fit: BoxFit.cover,
-                                                width: double.infinity,
-                                                height: 150,
-                                              )
-                                            : Image.network(
-                                                _editingCategory!.imageUrl,
-                                                fit: BoxFit.cover,
-                                                width: double.infinity,
-                                                height: 150,
-                                                errorBuilder:
-                                                    (context, error, stackTrace) {
-                                                  return const Icon(
-                                                    Icons.error,
-                                                    size: Sizes.s48,
-                                                  );
-                                                },
-                                              ),
-                                      ),
-                              ),
+                          ),
+                          const SizedBox(height: Sizes.s8),
+                          Text(
+                            'Tap the + button to create your first category',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.5),
                             ),
-
-                            const SizedBox(height: Sizes.s24),
-
-                            // Category Name
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Category Name *',
-                                  style: AppTextStyles.bodyMedium.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: Sizes.s8),
-                                CustomTextField(
-                                  controller: _nameController,
-                                  hintText: 'e.g., Burger, Pizza, Sushi',
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Category name is required';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: Sizes.s16),
-
-                            // Order
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Order (Optional)',
-                                  style: AppTextStyles.bodyMedium.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: Sizes.s8),
-                                CustomTextField(
-                                  controller: _orderController,
-                                  hintText: 'Display order (number)',
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: Sizes.s24),
-
-                            // Is Active Toggle
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Category is Active',
-                                  style: AppTextStyles.bodyMedium.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                Switch(
-                                  value: _isActive,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _isActive = value;
-                                    });
-                                  },
-                                  activeColor: const Color(0xFFFF6B35),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: Sizes.s32),
-
-                            // Save Button
-                            SizedBox(
-                              width: double.infinity,
-                              height: Sizes.s56,
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _handleSave,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFFF6B35),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(Sizes.s12),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: _isLoading
-                                    ? _isUploading
-                                        ? Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              const SizedBox(
-                                                width: Sizes.s20,
-                                                height: Sizes.s20,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                          Color>(
-                                                    Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: Sizes.s12),
-                                              Text(
-                                                'Uploading image...',
-                                                style: AppTextStyles
-                                                    .buttonLargeBold
-                                                    .copyWith(
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                            ],
-                                          )
-                                        : const SizedBox(
-                                            width: Sizes.s20,
-                                            height: Sizes.s20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
-                                                Colors.white,
-                                              ),
-                                            ),
-                                          )
-                                    : Text(
-                                        _editingCategory == null
-                                            ? 'Create Category'
-                                            : 'Update Category',
-                                        style: AppTextStyles.buttonLargeBold
-                                            .copyWith(
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                              ),
-                            ),
-
-                            const SizedBox(height: Sizes.s32),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                ],
+                    );
+                  }
+
+                  final categories = snapshot.data!.docs
+                      .map((doc) => CategoryModel.fromFirestore(
+                            doc.data() as Map<String, dynamic>,
+                            doc.id,
+                          ))
+                      .toList()
+                    ..sort((a, b) {
+                      if (a.order != null && b.order != null) {
+                        return a.order!.compareTo(b.order!);
+                      } else if (a.order != null) {
+                        return -1;
+                      } else if (b.order != null) {
+                        return 1;
+                      }
+                      return a.name.compareTo(b.name);
+                    });
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(Sizes.s16),
+                    itemCount: categories.length,
+                    itemBuilder: (context, index) {
+                      final category = categories[index];
+                      return AnimatedListItem(
+                        index: index,
+                        child: _buildCategoryCard(
+                          category: category,
+                          isDark: isDark,
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
             ),
           ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _createCategory,
+        backgroundColor: const Color(0xFFFF6B35),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: Text(
+          'Create Category',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryCard({
+    required CategoryModel category,
+    required bool isDark,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: Sizes.s12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(Sizes.s16),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.05),
+            blurRadius: Sizes.s4,
+            offset: const Offset(0, Sizes.s2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _editCategory(category),
+          borderRadius: BorderRadius.circular(Sizes.s16),
+          child: Padding(
+            padding: const EdgeInsets.all(Sizes.s16),
+            child: Row(
+              children: [
+                // Category Image
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(Sizes.s12),
+                  child: CachedNetworkImage(
+                    imageUrl: category.imageUrl,
+                    width: Sizes.s80,
+                    height: Sizes.s80,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      width: Sizes.s80,
+                      height: Sizes.s80,
+                      color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: const Color(0xFFFF6B35),
+                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      width: Sizes.s80,
+                      height: Sizes.s80,
+                      color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                      child: Icon(
+                        Icons.category,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: Sizes.s16),
+                // Category Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.name,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: Sizes.s8),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: Sizes.s8,
+                              vertical: Sizes.s4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: category.isActive
+                                  ? Colors.green.withOpacity(0.2)
+                                  : Colors.red.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(Sizes.s8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: Sizes.s6,
+                                  height: Sizes.s6,
+                                  decoration: BoxDecoration(
+                                    color: category.isActive
+                                        ? Colors.green
+                                        : Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: Sizes.s4),
+                                Text(
+                                  category.isActive ? 'Active' : 'Inactive',
+                                  style: AppTextStyles.captionTiny.copyWith(
+                                    color: category.isActive
+                                        ? Colors.green.shade700
+                                        : Colors.red.shade700,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (category.order != null) ...[
+                            const SizedBox(width: Sizes.s8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: Sizes.s8,
+                                vertical: Sizes.s4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.grey.shade700
+                                    : Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(Sizes.s8),
+                              ),
+                              child: Text(
+                                'Order: ${category.order}',
+                                style: AppTextStyles.captionTiny.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withOpacity(0.7),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // Actions
+                PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _editCategory(category);
+                    } else if (value == 'delete') {
+                      _deleteCategory(category);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.edit,
+                            size: Sizes.s18,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          const SizedBox(width: Sizes.s8),
+                          const Text('Edit'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.delete,
+                            size: Sizes.s18,
+                            color: Colors.red,
+                          ),
+                          const SizedBox(width: Sizes.s8),
+                          Text(
+                            'Delete',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/secure_storage_service.dart';
 
@@ -7,14 +8,23 @@ class SecureConfig {
   static const String _tmdbApiKeyKey = 'tmdb_api_key';
 
   static Future<void> initialize() async {
-    await dotenv.load(fileName: '.env', mergeWith: {});
-
-    final hasStoredKey = await SecureStorageService.containsKey(_tmdbApiKeyKey);
-    if (!hasStoredKey) {
-      final envApiKey = dotenv.get('TMDB_API_KEY', fallback: '');
-      if (envApiKey.isNotEmpty) {
-        await SecureStorageService.write(_tmdbApiKeyKey, envApiKey);
+    try {
+      await dotenv.load(fileName: '.env', mergeWith: {});
+    } catch (_) {
+      if (!kIsWeb) rethrow;
+      // .env may be missing on deployed web; continue without it
+    }
+    try {
+      final hasStoredKey = await SecureStorageService.containsKey(_tmdbApiKeyKey);
+      if (!hasStoredKey) {
+        final envApiKey = dotenv.get('TMDB_API_KEY', fallback: '');
+        if (envApiKey.isNotEmpty) {
+          await SecureStorageService.write(_tmdbApiKeyKey, envApiKey);
+        }
       }
+    } catch (_) {
+      if (!kIsWeb) rethrow;
+      // Secure storage can fail on web (e.g. iframe, privacy); app can still run
     }
   }
 

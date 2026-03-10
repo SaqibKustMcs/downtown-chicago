@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:food_flow_app/core/providers/theme_provider.dart';
-import 'package:food_flow_app/core/services/app_preferences_service.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/modules/onboarding/models/onboarding_page_model.dart';
-import 'package:food_flow_app/modules/onboarding/widgets/onboarding_page_widget.dart';
-import 'package:food_flow_app/routes/route_constants.dart';
-import 'package:food_flow_app/styles/colors/custom_colors.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/providers/theme_provider.dart';
+import 'package:downtown/core/services/app_preferences_service.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/modules/onboarding/models/onboarding_page_model.dart';
+import 'package:downtown/modules/onboarding/widgets/onboarding_page_widget.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/colors/custom_colors.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});

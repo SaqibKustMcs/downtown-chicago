@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/styles/colors/custom_colors.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/styles/colors/custom_colors.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class CheckoutScreen extends StatelessWidget {
   const CheckoutScreen({super.key});

@@ -1,4 +1,4 @@
-name: food_flow_app
+name: downtown
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.4+5
 
 environment:
   sdk: ^3.10.4
@@ -46,8 +46,6 @@ dependencies:
   cached_network_image: ^3.4.1
   youtube_player_flutter: ^9.0.3
   provider: ^6.1.2
-  floor: ^1.5.0
-  sqflite: ^2.3.0
   tabler_icons: ^2.0.0
   
   # Firebase
@@ -66,14 +64,39 @@ dependencies:
   
   # Device Info
   device_info_plus: ^10.1.0
+  
+  # Location Services
+  geolocator: ^13.0.1
+  permission_handler: ^11.3.1
+  geocoding: ^3.0.0
+  
+  # Google Maps
+  google_maps_flutter: ^2.9.0
 
+
+  # Phone Call
+
+  flutter_phone_direct_caller: ^2.1.2
+  url_launcher: ^6.3.1
+  
+  # Local Notifications
+  flutter_local_notifications: ^18.0.1
+  
+  # Share & Export
+  share_plus: ^10.1.2
+  path_provider: ^2.1.5
+  
+  # Printing
+  printing: ^5.13.2
+  pdf: ^3.11.1
+  
+  # Audio Player
+  audioplayers: ^6.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   flutter_lints: ^6.0.0
-  floor_generator: ^1.5.0
-  build_runner: ^2.4.7
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -99,6 +122,9 @@ flutter:
     - assets/icons/
     - assets/seats/
     - assets/mock_data/
+    - assets/sounds/
+    - assets/fonts/
+    - fonts/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -111,26 +137,26 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
+  # Font paths use "fonts/" (no "assets/" prefix) to avoid double "assets/assets/" on web
   fonts:
     - family: Poppins
       fonts:
-        - asset: assets/fonts/Poppins-Black.ttf
-        - asset: assets/fonts/Poppins-BlackItalic.ttf
-        - asset: assets/fonts/Poppins-Bold.ttf
-        - asset: assets/fonts/Poppins-BoldItalic.ttf
-        - asset: assets/fonts/Poppins-ExtraBold.ttf
-        - asset: assets/fonts/Poppins-ExtraBoldItalic.ttf
-        - asset: assets/fonts/Poppins-ExtraBoldItalic.ttf
-        - asset: assets/fonts/Poppins-ExtraLightItalic.ttf
-        - asset: assets/fonts/Poppins-Italic.ttf
-        - asset: assets/fonts/Poppins-Light.ttf
-        - asset: assets/fonts/Poppins-LightItalic.ttf
-        - asset: assets/fonts/Poppins-Medium.ttf
-        - asset: assets/fonts/Poppins-MediumItalic.ttf
-        - asset: assets/fonts/Poppins-Regular.ttf
-        - asset: assets/fonts/Poppins-SemiBold.ttf
-        - asset: assets/fonts/Poppins-SemiBoldItalic.ttf
-        - asset: assets/fonts/Poppins-Thin.ttf
-        - asset: assets/fonts/Poppins-ThinItalic.ttf
+        - asset: fonts/Poppins-Black.ttf
+        - asset: fonts/Poppins-BlackItalic.ttf
+        - asset: fonts/Poppins-Bold.ttf
+        - asset: fonts/Poppins-BoldItalic.ttf
+        - asset: fonts/Poppins-ExtraBold.ttf
+        - asset: fonts/Poppins-ExtraBoldItalic.ttf
+        - asset: fonts/Poppins-ExtraLightItalic.ttf
+        - asset: fonts/Poppins-Italic.ttf
+        - asset: fonts/Poppins-Light.ttf
+        - asset: fonts/Poppins-LightItalic.ttf
+        - asset: fonts/Poppins-Medium.ttf
+        - asset: fonts/Poppins-MediumItalic.ttf
+        - asset: fonts/Poppins-Regular.ttf
+        - asset: fonts/Poppins-SemiBold.ttf
+        - asset: fonts/Poppins-SemiBoldItalic.ttf
+        - asset: fonts/Poppins-Thin.ttf
+        - asset: fonts/Poppins-ThinItalic.ttf
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

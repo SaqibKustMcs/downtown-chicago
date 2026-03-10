@@ -1,35 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:food_flow_app/core/widgets/animated_list_item.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/modules/widgets/top_navigation_bar.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/di/dependency_injection.dart';
+import 'package:downtown/core/widgets/animated_list_item.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/modules/notifications/models/notification_model.dart';
+import 'package:downtown/modules/notifications/services/notification_service.dart';
+import 'package:downtown/modules/widgets/top_navigation_bar.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 import 'package:intl/intl.dart';
-
-class NotificationItem {
-  final String id;
-  final String title;
-  final String message;
-  final DateTime timestamp;
-  final bool isRead;
-  final NotificationType type;
-
-  const NotificationItem({
-    required this.id,
-    required this.title,
-    required this.message,
-    required this.timestamp,
-    this.isRead = false,
-    required this.type,
-  });
-}
-
-enum NotificationType {
-  order,
-  promotion,
-  general,
-  system,
-}
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -39,184 +18,106 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  static List<NotificationItem> _notifications = [
-    NotificationItem(
-      id: '1',
-      title: 'Order Confirmed',
-      message: 'Your order #12345 has been confirmed and is being prepared.',
-      timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-      type: NotificationType.order,
-    ),
-    NotificationItem(
-      id: '2',
-      title: 'Special Offer',
-      message: 'Get 20% off on all pizzas this weekend! Use code PIZZA20.',
-      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-      type: NotificationType.promotion,
-    ),
-    NotificationItem(
-      id: '3',
-      title: 'Order Out for Delivery',
-      message: 'Your order #12345 is out for delivery. Track it now!',
-      timestamp: DateTime.now().subtract(const Duration(hours: 3)),
-      type: NotificationType.order,
-    ),
-    NotificationItem(
-      id: '4',
-      title: 'Order Delivered',
-      message: 'Your order #12340 has been delivered. Rate your experience!',
-      timestamp: DateTime.now().subtract(const Duration(days: 1)),
-      type: NotificationType.order,
-      isRead: true,
-    ),
-    NotificationItem(
-      id: '5',
-      title: 'New Restaurant Added',
-      message: 'Check out our new partner restaurant - Sushi House!',
-      timestamp: DateTime.now().subtract(const Duration(days: 2)),
-      type: NotificationType.general,
-      isRead: true,
-    ),
-    NotificationItem(
-      id: '6',
-      title: 'App Update Available',
-      message: 'A new version of Food Flow is available. Update now for better experience.',
-      timestamp: DateTime.now().subtract(const Duration(days: 3)),
-      type: NotificationType.system,
-      isRead: true,
-    ),
-    NotificationItem(
-      id: '7',
-      title: 'Flash Sale',
-      message: 'Limited time offer! 30% off on burgers. Valid for next 2 hours.',
-      timestamp: DateTime.now().subtract(const Duration(days: 4)),
-      type: NotificationType.promotion,
-      isRead: true,
-    ),
-  ];
-
-  void _markAsRead(String id) {
-    setState(() {
-      final index = _notifications.indexWhere((n) => n.id == id);
-      if (index != -1) {
-        _notifications[index] = NotificationItem(
-          id: _notifications[index].id,
-          title: _notifications[index].title,
-          message: _notifications[index].message,
-          timestamp: _notifications[index].timestamp,
-          type: _notifications[index].type,
-          isRead: true,
-        );
-      }
-    });
-  }
-
-  void _markAllAsRead() {
-    setState(() {
-      _notifications = _notifications.map((n) {
-        return NotificationItem(
-          id: n.id,
-          title: n.title,
-          message: n.message,
-          timestamp: n.timestamp,
-          type: n.type,
-          isRead: true,
-        );
-      }).toList();
-    });
-  }
-
-  void _deleteNotification(String id) {
-    setState(() {
-      _notifications.removeWhere((n) => n.id == id);
-    });
-  }
-
-  IconData _getNotificationIcon(NotificationType type) {
-    switch (type) {
-      case NotificationType.order:
-        return TablerIconsHelper.receipt;
-      case NotificationType.promotion:
-        return TablerIconsHelper.bell;
-      case NotificationType.general:
-        return TablerIconsHelper.bell;
-      case NotificationType.system:
-        return TablerIconsHelper.settings;
-    }
-  }
-
-  Color _getNotificationColor(NotificationType type) {
-    switch (type) {
-      case NotificationType.order:
-        return const Color(0xFFFF6B35);
-      case NotificationType.promotion:
-        return Colors.purple;
-      case NotificationType.general:
-        return Colors.blue;
-      case NotificationType.system:
-        return Colors.grey;
-    }
-  }
-
-  String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-
-    if (difference.inMinutes < 1) {
-      return 'Just now';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
-    } else {
-      return DateFormat('MMM d, y').format(timestamp);
-    }
-  }
+  final _authController = DependencyInjection.instance.authController;
 
   @override
   Widget build(BuildContext context) {
-    final unreadCount = _notifications.where((n) => !n.isRead).length;
+    final currentUser = _authController.currentUser;
+    if (currentUser == null) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: const Center(
+          child: Text('Please login to view notifications'),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Top Navigation
-            TopNavigationBar(
-              title: 'Notifications',
-              trailing: unreadCount > 0
-                  ? TextButton(
-                      onPressed: _markAllAsRead,
-                      child: Text(
-                        'Mark all read',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: const Color(0xFFFF6B35),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
+        child: StreamBuilder<List<NotificationModel>>(
+          stream: NotificationService.getUserNotifications(currentUser.id),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-            // Notifications List
-            Expanded(
-              child: _notifications.isEmpty
-                  ? _buildEmptyState(context)
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: Sizes.s12, vertical: Sizes.s16),
-                      itemCount: _notifications.length,
-                      itemBuilder: (context, index) {
-                        return AnimatedListItem(
-                          index: index,
-                          child: _buildNotificationItem(_notifications[index]),
-                        );
-                      },
+            if (snapshot.hasError) {
+              return Column(
+                children: [
+                  TopNavigationBar(
+                    title: 'Notifications',
+                    showBackButton: true,
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: Sizes.s48,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                          const SizedBox(height: Sizes.s16),
+                          Text(
+                            'Error loading notifications',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-            ),
-          ],
+                  ),
+                ],
+              );
+            }
+
+            final notifications = snapshot.data ?? [];
+            final unreadCount = notifications.where((n) => !n.isRead).length;
+
+            return Column(
+              children: [
+                // Top Navigation
+                TopNavigationBar(
+                  title: 'Notifications',
+                  trailing: unreadCount > 0
+                      ? TextButton(
+                          onPressed: _markAllAsRead,
+                          child: Text(
+                            'Mark all read',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: const Color(0xFFFF6B35),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        )
+                      : null,
+                  showBackButton: true,
+                ),
+
+                // Notifications List
+                Expanded(
+                  child: notifications.isEmpty
+                      ? _buildEmptyState(context)
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: Sizes.s12,
+                            vertical: Sizes.s16,
+                          ),
+                          itemCount: notifications.length,
+                          itemBuilder: (context, index) {
+                            return AnimatedListItem(
+                              index: index,
+                              child: _buildNotificationItem(notifications[index]),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -251,7 +152,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildNotificationItem(NotificationItem notification) {
+  Widget _buildNotificationItem(NotificationModel notification) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = _getNotificationColor(notification.type);
 
@@ -276,7 +177,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _deleteNotification(notification.id);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Notification deleted'),
+            content: const Text('Notification deleted'),
             backgroundColor: Theme.of(context).cardColor,
             behavior: SnackBarBehavior.floating,
           ),
@@ -286,6 +187,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         onTap: () {
           if (!notification.isRead) {
             _markAsRead(notification.id);
+          }
+          // Navigate to order detail if it's an order notification
+          if (notification.orderId != null) {
+            Navigator.pushNamed(
+              context,
+              Routes.trackOrder,
+              arguments: notification.orderId,
+            );
           }
         },
         child: Container(
@@ -363,21 +272,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       ),
                       const SizedBox(height: Sizes.s4),
                       Text(
-                        notification.message,
+                        notification.body,
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: Sizes.s8),
-                      Text(
-                        _formatTimestamp(notification.timestamp),
-                        style: AppTextStyles.captionTiny.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-                          fontSize: Sizes.s10,
+                      if (notification.createdAt != null) ...[
+                        const SizedBox(height: Sizes.s8),
+                        Text(
+                          _formatTimestamp(notification.createdAt!),
+                          style: AppTextStyles.captionTiny.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.5),
+                            fontSize: Sizes.s10,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -387,5 +304,79 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
       ),
     );
+  }
+
+  IconData _getNotificationIcon(NotificationType type) {
+    switch (type) {
+      case NotificationType.orderCreated:
+      case NotificationType.orderAssigned:
+      case NotificationType.orderAccepted:
+      case NotificationType.orderStatusUpdate:
+      case NotificationType.orderUpdated:
+      case NotificationType.orderCancelled:
+        return TablerIconsHelper.receipt;
+      case NotificationType.promotion:
+        return TablerIconsHelper.bell;
+      case NotificationType.general:
+        return TablerIconsHelper.bell;
+      case NotificationType.system:
+        return TablerIconsHelper.settings;
+    }
+  }
+
+  Color _getNotificationColor(NotificationType type) {
+    switch (type) {
+      case NotificationType.orderCreated:
+      case NotificationType.orderAssigned:
+      case NotificationType.orderAccepted:
+      case NotificationType.orderStatusUpdate:
+      case NotificationType.orderUpdated:
+      case NotificationType.orderCancelled:
+        return const Color(0xFFFF6B35);
+      case NotificationType.promotion:
+        return Colors.purple;
+      case NotificationType.general:
+        return Colors.blue;
+      case NotificationType.system:
+        return Colors.grey;
+    }
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return DateFormat('MMM d, y').format(timestamp);
+    }
+  }
+
+  Future<void> _markAsRead(String notificationId) async {
+    final currentUser = _authController.currentUser;
+    if (currentUser == null) return;
+
+    await NotificationService.markAsRead(currentUser.id, notificationId);
+  }
+
+  Future<void> _markAllAsRead() async {
+    final currentUser = _authController.currentUser;
+    if (currentUser == null) return;
+
+    await NotificationService.markAllAsRead(currentUser.id);
+  }
+
+  Future<void> _deleteNotification(String notificationId) async {
+    final currentUser = _authController.currentUser;
+    if (currentUser == null) return;
+
+    await NotificationService.deleteNotification(currentUser.id, notificationId);
   }
 }

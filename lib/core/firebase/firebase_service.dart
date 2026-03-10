@@ -4,6 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+import '../constants/env_config.dart';
+import '../constants/firebase_web_options_fallback.dart';
 
 /// Firebase Service - Centralized Firebase initialization and access
 class FirebaseService {
@@ -15,10 +19,18 @@ class FirebaseService {
   static FirebaseStorage? _storage;
   static FirebaseMessaging? _messaging;
   static FirebaseAnalytics? _analytics;
+  static FirebaseApp? _adminApp;
+  static FirebaseAuth? _adminAuth;
 
   /// Initialize Firebase
   static Future<void> initialize() async {
-    _app = await Firebase.initializeApp();
+    if (kIsWeb) {
+      // Use .env if loaded (local), otherwise fallback so production deploy works
+      final options = EnvConfig.firebaseWebOptions ?? FirebaseWebOptionsFallback.options;
+      _app = await Firebase.initializeApp(options: options);
+    } else {
+      _app = await Firebase.initializeApp();
+    }
     _auth = FirebaseAuth.instance;
     _firestore = FirebaseFirestore.instance;
     _storage = FirebaseStorage.instance;
@@ -32,6 +44,34 @@ class FirebaseService {
       throw Exception('Firebase not initialized. Call FirebaseService.initialize() first.');
     }
     return _auth!;
+  }
+
+  /// Get a secondary Firebase Auth instance for admin-only operations
+  /// (e.g. creating rider accounts) without affecting the current session.
+  static Future<FirebaseAuth> get adminAuth async {
+    // Ensure main app is initialized
+    if (_app == null) {
+      await initialize();
+    }
+
+    // On web, multiple auth instances are not needed/supported the same way,
+    // so we just reuse the primary auth instance.
+    if (kIsWeb) {
+      return auth;
+    }
+
+    if (_adminAuth != null) {
+      return _adminAuth!;
+    }
+
+    // Initialize a named secondary app sharing the same options
+    _adminApp ??= await Firebase.initializeApp(
+      name: 'admin_app',
+      options: _app!.options,
+    );
+
+    _adminAuth = FirebaseAuth.instanceFor(app: _adminApp!);
+    return _adminAuth!;
   }
 
   /// Get Firestore instance

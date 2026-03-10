@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:food_flow_app/core/widgets/animated_list_item.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/core/firebase/firebase_service.dart';
-import 'package:food_flow_app/core/di/dependency_injection.dart';
-import 'package:food_flow_app/models/food_item_model.dart';
-import 'package:food_flow_app/models/restaurant_model.dart';
-import 'package:food_flow_app/models/cart_item_model.dart';
-import 'package:food_flow_app/routes/route_constants.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/widgets/animated_list_item.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/core/utils/currency_formatter.dart';
+import 'package:downtown/core/firebase/firebase_service.dart';
+import 'package:downtown/core/di/dependency_injection.dart';
+import 'package:downtown/models/food_item_model.dart';
+import 'package:downtown/models/restaurant_model.dart';
+import 'package:downtown/models/cart_item_model.dart';
+import 'package:downtown/modules/reviews/views/restaurant_reviews_screen.dart';
+import 'package:downtown/modules/reviews/widgets/rating_stars_widget.dart';
+import 'package:downtown/modules/checkout/controllers/cart_controller.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class RestaurantViewScreen extends StatefulWidget {
   final Restaurant restaurant;
@@ -23,6 +27,7 @@ class RestaurantViewScreen extends StatefulWidget {
 
 class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
   String? _selectedCategory;
+  bool _hasUserSelectedCategory = false; // Track if user has explicitly selected a category
   final PageController _imagePageController = PageController();
   int _currentImageIndex = 0;
 
@@ -34,8 +39,7 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
 
   // Get banner images from restaurant or use main image
   List<String> get _bannerImages {
-    if (widget.restaurant.bannerImages != null &&
-        widget.restaurant.bannerImages!.isNotEmpty) {
+    if (widget.restaurant.bannerImages != null && widget.restaurant.bannerImages!.isNotEmpty) {
       return widget.restaurant.bannerImages!;
     }
     return [widget.restaurant.imageUrl];
@@ -62,30 +66,150 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const SizedBox(height: Sizes.s8),
+
+                        // See all reviews button
+                        TextButton.icon(
+                          onPressed: () {
+                            if (widget.restaurant.id == null) return;
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RestaurantReviewsScreen(
+                                  restaurantId: widget.restaurant.id!,
+                                  restaurantName: widget.restaurant.name,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.rate_review_outlined, size: Sizes.s18),
+                          label: const Text('See all reviews'),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            foregroundColor: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+
+                        const SizedBox(height: Sizes.s16),
+
+                        // Open/Closed Status
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: Sizes.s12,
+                                vertical: Sizes.s6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: widget.restaurant.isCurrentlyOpen
+                                    ? Colors.green.withOpacity(0.1)
+                                    : Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(Sizes.s8),
+                                border: Border.all(
+                                  color: widget.restaurant.isCurrentlyOpen
+                                      ? Colors.green
+                                      : Colors.red,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: Sizes.s8,
+                                    height: Sizes.s8,
+                                    decoration: BoxDecoration(
+                                      color: widget.restaurant.isCurrentlyOpen
+                                          ? Colors.green
+                                          : Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: Sizes.s6),
+                                  Text(
+                                    widget.restaurant.isCurrentlyOpen ? 'Open Now' : 'Closed',
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: widget.restaurant.isCurrentlyOpen
+                                          ? Colors.green
+                                          : Colors.red,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (widget.restaurant.formattedOpeningHours != null) ...[
+                              const SizedBox(height: Sizes.s8),
+                              Row(
+                                children: [
+                                  Icon(
+                                    TablerIconsHelper.clock,
+                                    size: Sizes.s14,
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  ),
+                                  const SizedBox(width: Sizes.s6),
+                                  Text(
+                                    widget.restaurant.formattedOpeningHours!,
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withOpacity(0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
                         const SizedBox(height: Sizes.s16),
 
                         // Rating, Delivery Cost, Delivery Time
                         Row(
                           children: [
-                            const Icon(TablerIconsHelper.star, color: Color(0xFFFF6B35), size: Sizes.s20),
+                            RatingStarsWidget(rating: widget.restaurant.rating, size: Sizes.s18),
                             const SizedBox(width: Sizes.s4),
                             Text(
-                              widget.restaurant.rating.toString(),
-                              style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
+                              widget.restaurant.rating.toStringAsFixed(1),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(width: Sizes.s4),
+                            Text(
+                              '(${widget.restaurant.totalRatings})',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              ),
                             ),
                             const SizedBox(width: Sizes.s16),
-                            const Icon(TablerIconsHelper.delivery, color: Color(0xFFFF6B35), size: Sizes.s20),
+                            const Icon(
+                              TablerIconsHelper.delivery,
+                              color: Color(0xFFFF6B35),
+                              size: Sizes.s20,
+                            ),
                             const SizedBox(width: Sizes.s4),
                             Text(
                               widget.restaurant.deliveryCost,
-                              style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                             ),
                             const SizedBox(width: Sizes.s16),
-                            const Icon(TablerIconsHelper.time, color: Color(0xFFFF6B35), size: Sizes.s20),
+                            const Icon(
+                              TablerIconsHelper.time,
+                              color: Color(0xFFFF6B35),
+                              size: Sizes.s20,
+                            ),
                             const SizedBox(width: Sizes.s4),
                             Text(
                               widget.restaurant.deliveryTime,
-                              style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                             ),
                           ],
                         ),
@@ -94,7 +218,11 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                         // Restaurant Name
                         Text(
                           widget.restaurant.name,
-                          style: AppTextStyles.heading1.copyWith(fontWeight: FontWeight.bold, fontSize: Sizes.s28, color: Theme.of(context).colorScheme.onSurface),
+                          style: AppTextStyles.heading2.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: Sizes.s20,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
                         const SizedBox(height: Sizes.s12),
 
@@ -115,11 +243,11 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                         StreamBuilder<QuerySnapshot>(
                           stream: widget.restaurant.id != null
                               ? FirebaseService.firestore
-                                  .collection('products')
-                                  .where('restaurantId', isEqualTo: widget.restaurant.id!)
-                                  .where('isActive', isEqualTo: true)
-                                  .where('isAvailable', isEqualTo: true)
-                                  .snapshots()
+                                    .collection('products')
+                                    .where('restaurantId', isEqualTo: widget.restaurant.id!)
+                                    .where('isActive', isEqualTo: true)
+                                    .where('isAvailable', isEqualTo: true)
+                                    .snapshots()
                               : Stream<QuerySnapshot>.empty(),
                           builder: (context, productsSnapshot) {
                             if (productsSnapshot.connectionState == ConnectionState.waiting) {
@@ -145,8 +273,7 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                               );
                             }
 
-                            if (!productsSnapshot.hasData ||
-                                productsSnapshot.data!.docs.isEmpty) {
+                            if (!productsSnapshot.hasData || productsSnapshot.data!.docs.isEmpty) {
                               return Center(
                                 child: Padding(
                                   padding: const EdgeInsets.all(Sizes.s32),
@@ -155,19 +282,17 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                                       Icon(
                                         Icons.fastfood_outlined,
                                         size: Sizes.s64,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.5),
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface.withOpacity(0.5),
                                       ),
                                       const SizedBox(height: Sizes.s16),
                                       Text(
                                         'No products available',
                                         style: AppTextStyles.bodyMedium.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                              .withOpacity(0.6),
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface.withOpacity(0.6),
                                         ),
                                       ),
                                     ],
@@ -176,91 +301,148 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                               );
                             }
 
-                            // Get all products
-                            final allProducts = productsSnapshot.data!.docs
-                                .map((doc) => FoodItem.fromFirestore(
-                                      doc.data() as Map<String, dynamic>,
-                                      doc.id,
-                                    ))
+                            // Get all products and sort by displayOrder
+                            final allProducts =
+                                productsSnapshot.data!.docs
+                                    .map(
+                                      (doc) => FoodItem.fromFirestore(
+                                        doc.data() as Map<String, dynamic>,
+                                        doc.id,
+                                      ),
+                                    )
+                                    .toList()
+                                  ..sort((a, b) {
+                                    // First sort by displayOrder, then by name
+                                    final orderCompare = a.displayOrder.compareTo(b.displayOrder);
+                                    if (orderCompare != 0) return orderCompare;
+                                    return a.name.compareTo(b.name);
+                                  });
+
+                            // Separate popular products
+                            final popularProducts = allProducts
+                                .where((product) => product.isPopular)
                                 .toList();
 
                             // Get unique categories from products
-                            final categories = allProducts
-                                .map((product) => product.categoryName)
-                                .whereType<String>()
-                                .where((name) => name.isNotEmpty)
-                                .toSet()
-                                .toList()
-                              ..sort();
+                            final categories =
+                                allProducts
+                                    .map((product) => product.categoryName)
+                                    .whereType<String>()
+                                    .where((name) => name.isNotEmpty)
+                                    .toSet()
+                                    .toList()
+                                  ..sort();
 
-                            // Set default selected category if not set
-                            if (_selectedCategory == null && categories.isNotEmpty) {
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                setState(() {
-                                  _selectedCategory = categories.first;
-                                });
-                              });
-                            }
+                            // Default is "All" (_selectedCategory == null); no auto-select of first category
 
                             // Filter products by selected category
                             final filteredProducts = _selectedCategory == null
                                 ? allProducts
                                 : allProducts
-                                    .where((product) =>
-                                        product.categoryName == _selectedCategory)
-                                    .toList();
+                                      .where((product) => product.categoryName == _selectedCategory)
+                                      .toList();
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Categories
+                                // Categories - Add "All" option
                                 if (categories.isNotEmpty) ...[
                                   SizedBox(
                                     height: Sizes.s40,
                                     child: ListView.builder(
                                       scrollDirection: Axis.horizontal,
-                                      itemCount: categories.length,
+                                      itemCount: categories.length + 1, // +1 for "All" option
                                       itemBuilder: (context, index) {
-                                        final category = categories[index];
+                                        if (index == 0) {
+                                          // "All" option
+                                          final isSelected = _selectedCategory == null;
+                                          return AnimatedListItem(
+                                            index: index,
+                                            delay: const Duration(milliseconds: 30),
+                                            child: Padding(
+                                              padding: const EdgeInsets.only(right: Sizes.s12),
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    _selectedCategory = null;
+                                                    _hasUserSelectedCategory =
+                                                        true; // Mark that user has made a selection
+                                                  });
+                                                },
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: Sizes.s20,
+                                                    vertical: Sizes.s8,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: isSelected
+                                                        ? const Color(0xFFFF6B35)
+                                                        : Theme.of(context).brightness ==
+                                                              Brightness.dark
+                                                        ? Colors.grey.shade800
+                                                        : Colors.grey.shade100,
+                                                    borderRadius: BorderRadius.circular(Sizes.s20),
+                                                  ),
+                                                  child: Center(
+                                                    child: Text(
+                                                      'All',
+                                                      style: AppTextStyles.bodySmall.copyWith(
+                                                        fontSize: Sizes.s12,
+                                                        color: isSelected
+                                                            ? Colors.white
+                                                            : Theme.of(
+                                                                context,
+                                                              ).colorScheme.onSurface,
+                                                        fontWeight: isSelected
+                                                            ? FontWeight.w600
+                                                            : FontWeight.w400,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        final category = categories[index - 1];
                                         final isSelected = category == _selectedCategory;
                                         return AnimatedListItem(
                                           index: index,
                                           delay: const Duration(milliseconds: 30),
                                           child: Padding(
                                             padding: EdgeInsets.only(
-                                                right: index < categories.length - 1
-                                                    ? Sizes.s12
-                                                    : 0),
+                                              right: index < categories.length ? Sizes.s12 : 0,
+                                            ),
                                             child: GestureDetector(
                                               onTap: () {
                                                 setState(() {
                                                   _selectedCategory = category;
+                                                  _hasUserSelectedCategory =
+                                                      true; // Mark that user has made a selection
                                                 });
                                               },
                                               child: Container(
                                                 padding: const EdgeInsets.symmetric(
-                                                    horizontal: Sizes.s20,
-                                                    vertical: Sizes.s8),
+                                                  horizontal: Sizes.s20,
+                                                  vertical: Sizes.s8,
+                                                ),
                                                 decoration: BoxDecoration(
                                                   color: isSelected
                                                       ? const Color(0xFFFF6B35)
                                                       : Theme.of(context).brightness ==
-                                                              Brightness.dark
-                                                          ? Colors.grey.shade800
-                                                          : Colors.grey.shade100,
-                                                  borderRadius:
-                                                      BorderRadius.circular(Sizes.s20),
+                                                            Brightness.dark
+                                                      ? Colors.grey.shade800
+                                                      : Colors.grey.shade100,
+                                                  borderRadius: BorderRadius.circular(Sizes.s20),
                                                 ),
                                                 child: Center(
                                                   child: Text(
                                                     category,
-                                                    style: AppTextStyles.bodyMedium
-                                                        .copyWith(
+                                                    style: AppTextStyles.bodySmall.copyWith(
+                                                      fontSize: Sizes.s12,
                                                       color: isSelected
                                                           ? Colors.white
-                                                          : Theme.of(context)
-                                                              .colorScheme
-                                                              .onSurface,
+                                                          : Theme.of(context).colorScheme.onSurface,
                                                       fontWeight: isSelected
                                                           ? FontWeight.w600
                                                           : FontWeight.w400,
@@ -277,25 +459,69 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                                   const SizedBox(height: Sizes.s24),
                                 ],
 
-                                // Category Heading
-                                if (_selectedCategory != null)
-                                  Text(
-                                    '$_selectedCategory (${filteredProducts.length})',
-                                    style: AppTextStyles.heading2.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: Sizes.s20,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
-                                  )
-                                else
-                                  Text(
-                                    'All Products (${filteredProducts.length})',
-                                    style: AppTextStyles.heading2.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: Sizes.s20,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
+                                // Popular Products Section (only show if there are popular products and "All" is selected)
+                                if (popularProducts.isNotEmpty && _selectedCategory == null) ...[
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Popular Products',
+                                        style: AppTextStyles.heading3.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: Sizes.s18,
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                      if (popularProducts.length > 4)
+                                        TextButton(
+                                          onPressed: () {
+                                            // Scroll to all products section or show all popular
+                                          },
+                                          child: Text(
+                                            'See All',
+                                            style: AppTextStyles.bodyMedium.copyWith(
+                                              color: const Color(0xFFFF6B35),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
+                                  const SizedBox(height: Sizes.s16),
+                                  GridView.builder(
+                                    padding: EdgeInsets.zero,
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      childAspectRatio: 0.7,
+                                      crossAxisSpacing: Sizes.s12,
+                                      mainAxisSpacing: Sizes.s16,
+                                    ),
+                                    itemCount: popularProducts.length > 4
+                                        ? 4
+                                        : popularProducts.length, // Show max 4 popular products
+                                    itemBuilder: (context, index) {
+                                      return AnimatedListItem(
+                                        index: index,
+                                        child: _buildFoodItemCard(popularProducts[index], context),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: Sizes.s32),
+                                ],
+
+                                // Category/All Products Heading
+                                Text(
+                                  _selectedCategory != null
+                                      ? '$_selectedCategory (${filteredProducts.length})'
+                                      : 'All Products (${allProducts.length})',
+                                  style: AppTextStyles.heading3.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: Sizes.s16,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
                                 const SizedBox(height: Sizes.s16),
 
                                 // Food Items Grid
@@ -308,19 +534,17 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                                           Icon(
                                             Icons.fastfood_outlined,
                                             size: Sizes.s64,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withOpacity(0.5),
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface.withOpacity(0.5),
                                           ),
                                           const SizedBox(height: Sizes.s16),
                                           Text(
                                             'No products in this category',
                                             style: AppTextStyles.bodyMedium.copyWith(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withOpacity(0.6),
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface.withOpacity(0.6),
                                             ),
                                           ),
                                         ],
@@ -329,12 +553,13 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                                   )
                                 else
                                   GridView.builder(
+                                    padding: EdgeInsets.zero,
                                     shrinkWrap: true,
                                     physics: const NeverScrollableScrollPhysics(),
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                       crossAxisCount: 2,
-                                      childAspectRatio: 0.7,
+
+                                      mainAxisExtent: 240,
                                       crossAxisSpacing: Sizes.s12,
                                       mainAxisSpacing: Sizes.s16,
                                     ),
@@ -342,8 +567,7 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                                     itemBuilder: (context, index) {
                                       return AnimatedListItem(
                                         index: index,
-                                        child: _buildFoodItemCard(
-                                            filteredProducts[index], context),
+                                        child: _buildFoodItemCard(filteredProducts[index], context),
                                       );
                                     },
                                   ),
@@ -369,7 +593,10 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
       children: [
         // Image Carousel
         ClipRRect(
-          borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(Sizes.s24), bottomRight: Radius.circular(Sizes.s24)),
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(Sizes.s24),
+            bottomRight: Radius.circular(Sizes.s24),
+          ),
           child: SizedBox(
             height: Sizes.s240,
             child: PageView.builder(
@@ -389,14 +616,27 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                   placeholder: (context, url) => Container(
                     width: double.infinity,
                     height: Sizes.s240,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade200,
-                    child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary)),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade800
+                        : Colors.grey.shade200,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
                   ),
                   errorWidget: (context, url, error) => Container(
                     width: double.infinity,
                     height: Sizes.s240,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade200,
-                    child: Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5), size: Sizes.s64),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade800
+                        : Colors.grey.shade200,
+                    child: Icon(
+                      Icons.error_outline,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                      size: Sizes.s64,
+                    ),
                   ),
                 );
               },
@@ -420,40 +660,46 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.1),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withOpacity(0.3)
+                            : Colors.black.withOpacity(0.1),
                         blurRadius: Sizes.s4,
                         offset: const Offset(0, Sizes.s2),
                       ),
                     ],
                   ),
                   child: IconButton(
-                    icon: Icon(TablerIconsHelper.arrowLeft, color: Theme.of(context).colorScheme.onSurface, size: Sizes.s20),
+                    icon: Icon(
+                      TablerIconsHelper.arrowLeft,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      size: Sizes.s20,
+                    ),
                     onPressed: () => Navigator.pop(context),
                     padding: EdgeInsets.zero,
                   ),
                 ),
 
                 // Menu Button
-                Container(
-                  width: Sizes.s40,
-                  height: Sizes.s40,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.1),
-                        blurRadius: Sizes.s4,
-                        offset: const Offset(0, Sizes.s2),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: Icon(TablerIconsHelper.menu, color: Theme.of(context).colorScheme.onSurface, size: Sizes.s20),
-                    onPressed: () {},
-                    padding: EdgeInsets.zero,
-                  ),
-                ),
+                // Container(
+                //   width: Sizes.s40,
+                //   height: Sizes.s40,
+                //   decoration: BoxDecoration(
+                //     color: Theme.of(context).cardColor,
+                //     shape: BoxShape.circle,
+                //     boxShadow: [
+                //       BoxShadow(
+                //         color: Theme.of(context).brightness == Brightness.dark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.1),
+                //         blurRadius: Sizes.s4,
+                //         offset: const Offset(0, Sizes.s2),
+                //       ),
+                //     ],
+                //   ),
+                //   child: IconButton(
+                //     icon: Icon(TablerIconsHelper.menu, color: Theme.of(context).colorScheme.onSurface, size: Sizes.s20),
+                //     onPressed: () {},
+                //     padding: EdgeInsets.zero,
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -472,7 +718,10 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                 width: _currentImageIndex == index ? Sizes.s24 : Sizes.s8,
                 height: Sizes.s8,
                 margin: const EdgeInsets.symmetric(horizontal: Sizes.s4),
-                decoration: BoxDecoration(color: _currentImageIndex == index ? Colors.white : Colors.white.withOpacity(0.5), borderRadius: BorderRadius.circular(Sizes.s4)),
+                decoration: BoxDecoration(
+                  color: _currentImageIndex == index ? Colors.white : Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(Sizes.s4),
+                ),
               ),
             ),
           ),
@@ -492,7 +741,9 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
           borderRadius: BorderRadius.circular(Sizes.s16),
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.black.withOpacity(0.3)
+                  : Colors.black.withOpacity(0.05),
               blurRadius: Sizes.s8,
               offset: const Offset(0, Sizes.s2),
             ),
@@ -512,14 +763,26 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                 placeholder: (context, url) => Container(
                   width: double.infinity,
                   height: Sizes.s136,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade200,
-                  child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary)),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade800
+                      : Colors.grey.shade200,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
                 ),
                 errorWidget: (context, url, error) => Container(
                   width: double.infinity,
                   height: Sizes.s136,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade200,
-                  child: Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade800
+                      : Colors.grey.shade200,
+                  child: Icon(
+                    Icons.error_outline,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                  ),
                 ),
               ),
             ),
@@ -533,8 +796,12 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                   // Item Name
                   Text(
                     item.name,
-                    style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
-                    maxLines: 1,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: Sizes.s13,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: Sizes.s4),
@@ -542,29 +809,74 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
                   // Restaurant Name
                   Text(
                     item.restaurantName,
-                    style: AppTextStyles.bodySmall.copyWith(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: Sizes.s8),
 
-                  // Price and Add Button
+                  // Price and Add Button/Quantity Badge
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      GestureDetector(
-                        onTap: () => _addToCart(item),
-                        child: Container(
-                          width: Sizes.s32,
-                          height: Sizes.s32,
-                          decoration: const BoxDecoration(color: Color(0xFFFF6B35), shape: BoxShape.circle),
-                          child: const Icon(TablerIconsHelper.plus, color: Colors.white, size: Sizes.s16),
-                        ),
+                      // Show quantity badge if product is in cart, otherwise show add button
+                      ListenableBuilder(
+                        listenable: DependencyInjection.instance.cartController,
+                        builder: (context, _) {
+                          final cartController = DependencyInjection.instance.cartController;
+                          final quantity = cartController.getProductQuantity(item.id);
+
+                          if (quantity > 0) {
+                            // Show quantity badge
+                            return Container(
+                              width: Sizes.s32,
+                              height: Sizes.s32,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFF6B35),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  quantity.toString(),
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: Sizes.s14,
+                                  ),
+                                ),
+                              ),
+                            );
+                          } else {
+                            // Show add button
+                            return GestureDetector(
+                              onTap: () => _addToCart(item),
+                              child: Container(
+                                width: Sizes.s32,
+                                height: Sizes.s32,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFF6B35),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  TablerIconsHelper.plus,
+                                  color: Colors.white,
+                                  size: Sizes.s16,
+                                ),
+                              ),
+                            );
+                          }
+                        },
                       ),
 
                       Text(
-                        '\$${item.basePrice.toInt()}',
-                        style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+                        CurrencyFormatter.formatInt(item.basePrice),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: Sizes.s14,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                     ],
                   ),
@@ -578,6 +890,20 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
   }
 
   void _addToCart(FoodItem item) {
+    // Check if restaurant is currently open
+    if (!widget.restaurant.isCurrentlyOpen) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'This restaurant is currently closed. Opening hours: ${widget.restaurant.formattedOpeningHours ?? "N/A"}',
+            style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
     final cartController = DependencyInjection.instance.cartController;
 
     // Get default variation and flavor if available
@@ -614,19 +940,35 @@ class _RestaurantViewScreenState extends State<RestaurantViewScreen> {
     // Add to cart
     cartController.addToCart(cartItem);
 
-    // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Added ${item.name} to cart'),
-        backgroundColor: const Color(0xFFFF6B35),
-        action: SnackBarAction(
-          label: 'View Cart',
-          textColor: Colors.white,
-          onPressed: () {
-            Navigator.pushNamed(context, Routes.cart);
-          },
-        ),
-      ),
-    );
+    // Show success message - compact and eye-catching like Foodpanda
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(
+    //     content: Row(
+    //       mainAxisSize: MainAxisSize.min,
+    //       children: [
+    //         const Icon(Icons.check_circle, color: Colors.white, size: Sizes.s20),
+    //         const SizedBox(width: Sizes.s8),
+    //         Flexible(
+    //           child: Text(
+    //             'Added to cart',
+    //             style: AppTextStyles.bodyMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+    //           ),
+    //         ),
+    //       ],
+    //     ),
+    //     backgroundColor: const Color(0xFFFF6B35),
+    //     behavior: SnackBarBehavior.floating,
+    //     margin: const EdgeInsets.symmetric(horizontal: Sizes.s16, vertical: Sizes.s16),
+    //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.s12)),
+    //     duration: const Duration(seconds: 2),
+    //     action: SnackBarAction(
+    //       label: 'View',
+    //       textColor: Colors.white,
+    //       onPressed: () {
+    //         Navigator.pushNamed(context, Routes.cart);
+    //       },
+    //     ),
+    //   ),
+    // );
   }
 }

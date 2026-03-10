@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:food_flow_app/core/di/dependency_injection.dart';
-import 'package:food_flow_app/core/firebase/firebase_service.dart';
-import 'package:food_flow_app/core/widgets/animated_list_item.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:intl_phone_field/countries.dart';
+import 'package:downtown/core/di/dependency_injection.dart';
+import 'package:downtown/core/firebase/firebase_service.dart';
+import 'package:downtown/core/widgets/animated_list_item.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -30,7 +31,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isLoading = false;
   bool _isUploading = false;
   bool _isInitialized = false;
-  String _countryCode = '+1';
+  String _countryCode = '+92'; // Pakistan only
   String _phoneNumber = '';
 
   @override
@@ -327,6 +328,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         delay: const Duration(milliseconds: 300),
                         child: _buildPhoneField(),
                       ),
+
                       const SizedBox(height: Sizes.s16),
 
                       AnimatedListItem(
@@ -558,6 +560,50 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  Widget _buildBioField() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'BIO',
+          style: AppTextStyles.label.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: Sizes.s12,
+          ),
+        ),
+        const SizedBox(height: Sizes.s8),
+        TextFormField(
+          controller: _bioController,
+          keyboardType: TextInputType.multiline,
+          maxLines: 4,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+          decoration: InputDecoration(
+            hintText: 'Tell us about yourself (optional)',
+            hintStyle: TextStyle(
+              color: isDark
+                  ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+                  : Colors.grey.shade600,
+            ),
+            filled: true,
+            fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Sizes.s12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: Sizes.s16,
+              vertical: Sizes.s16,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   String _getCountryCodeFromDialCode(String dialCode) {
     // Map common dial codes to country codes
     final dialCodeMap = {
@@ -596,9 +642,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         const SizedBox(height: Sizes.s8),
         IntlPhoneField(
           controller: _phoneController,
-          initialCountryCode: _getCountryCodeFromDialCode(_countryCode),
+          initialCountryCode: 'PK',
+          countries: countries.where((c) => c.code == 'PK').toList(),
           decoration: InputDecoration(
-            hintText: 'Enter your phone number',
+            hintText: 'Enter your Pakistan phone number',
             hintStyle: TextStyle(
               color: isDark
                   ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
@@ -647,46 +694,4 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildBioField() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'BIO',
-          style: AppTextStyles.label.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
-            fontSize: Sizes.s12,
-          ),
-        ),
-        const SizedBox(height: Sizes.s8),
-        TextFormField(
-          controller: _bioController,
-          maxLines: 3,
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Sizes.s12),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: Sizes.s16,
-              vertical: Sizes.s16,
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter BIO';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
 }

@@ -1,7 +1,7 @@
-import 'package:food_flow_app/core/base/base_repository.dart';
-import 'package:food_flow_app/modules/auth/models/user_model.dart';
-import 'package:food_flow_app/modules/auth/datasources/auth_remote_datasource.dart';
-import 'package:food_flow_app/modules/auth/datasources/auth_local_datasource.dart';
+import 'package:downtown/core/base/base_repository.dart';
+import 'package:downtown/modules/auth/models/user_model.dart';
+import 'package:downtown/modules/auth/datasources/auth_remote_datasource.dart';
+import 'package:downtown/modules/auth/datasources/auth_local_datasource.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 /// Auth Repository - Handles data operations for authentication
@@ -66,7 +66,9 @@ class AuthRepository implements BaseRepository<UserModel> {
   // Auth-specific methods
 
   Future<UserCredential> signInWithEmailAndPassword({required String email, required String password}) async {
-    final credential = await _remoteDataSource.signInWithEmailAndPassword(email: email, password: password);
+    // Normalize email to lowercase for consistent authentication
+    final normalizedEmail = email.trim().toLowerCase();
+    final credential = await _remoteDataSource.signInWithEmailAndPassword(email: normalizedEmail, password: password);
 
     // Save token locally
     if (credential.user != null) {
@@ -83,11 +85,13 @@ class AuthRepository implements BaseRepository<UserModel> {
 
   /// Sign up with email and password
   Future<UserCredential> signUpWithEmailAndPassword({required String email, required String password, String? name, UserType userType = UserType.customer}) async {
-    final credential = await _remoteDataSource.signUpWithEmailAndPassword(email: email, password: password);
+    // Normalize email to lowercase for consistent storage and lookup
+    final normalizedEmail = email.trim().toLowerCase();
+    final credential = await _remoteDataSource.signUpWithEmailAndPassword(email: normalizedEmail, password: password);
 
     // Create user document in Firestore
     if (credential.user != null) {
-      final userModel = UserModel(id: credential.user!.uid, email: email, name: name, userType: userType, createdAt: DateTime.now(), emailVerified: false);
+      final userModel = UserModel(id: credential.user!.uid, email: normalizedEmail, name: name, userType: userType, createdAt: DateTime.now(), emailVerified: false);
       await create(userModel);
 
       // Send verification email
@@ -189,5 +193,17 @@ class AuthRepository implements BaseRepository<UserModel> {
       // Fallback to Firebase Auth data
       return UserModel.fromFirebaseUser(user);
     });
+  }
+
+  /// Check if user exists by email
+  Future<Map<String, dynamic>?> checkUserExists(String email) async {
+    try {
+      // Query Firestore for user with this email
+      final querySnapshot = await _remoteDataSource.checkUserByEmail(email);
+      return querySnapshot;
+    } catch (e) {
+      print('Error checking if user exists: $e');
+      return null;
+    }
   }
 }

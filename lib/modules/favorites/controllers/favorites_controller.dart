@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:food_flow_app/core/base/base_controller.dart';
-import 'package:food_flow_app/core/firebase/firebase_service.dart';
-import 'package:food_flow_app/models/food_item_model.dart';
+import 'package:downtown/core/base/base_controller.dart';
+import 'package:downtown/core/firebase/firebase_service.dart';
+import 'package:downtown/models/food_item_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FavoritesController extends BaseController {

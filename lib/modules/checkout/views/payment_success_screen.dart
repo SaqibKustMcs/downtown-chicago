@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:food_flow_app/core/widgets/animated_list_item.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/routes/route_constants.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/widgets/animated_list_item.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class PaymentSuccessScreen extends StatelessWidget {
   final double totalAmount;
+  final String? orderId;
 
-  const PaymentSuccessScreen({super.key, required this.totalAmount});
+  const PaymentSuccessScreen({
+    super.key,
+    required this.totalAmount,
+    this.orderId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -67,24 +72,39 @@ class PaymentSuccessScreen extends StatelessWidget {
                 delay: const Duration(milliseconds: 400),
                 child: AnimatedButton(
                   onPressed: () {
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      Routes.mainContainer,
-                      (route) => false,
-                    );
-                    // Navigate to orders tab
-                    // You might need to pass a parameter to open orders tab
+                    if (orderId != null && orderId!.isNotEmpty) {
+                      // Go to home then open track order; back from track order returns to home
+                      Navigator.pushReplacementNamed(
+                        context,
+                        Routes.mainContainer,
+                        arguments: {'openTrackOrderId': orderId},
+                      );
+                    } else {
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        Routes.mainContainer,
+                        (route) => false,
+                      );
+                    }
                   },
                   child: SizedBox(
                     width: double.infinity,
                     height: Sizes.s56,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          Routes.mainContainer,
-                          (route) => false,
-                        );
+                        if (orderId != null && orderId!.isNotEmpty) {
+                          Navigator.pushReplacementNamed(
+                            context,
+                            Routes.mainContainer,
+                            arguments: {'openTrackOrderId': orderId},
+                          );
+                        } else {
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            Routes.mainContainer,
+                            (route) => false,
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFF6B35),
@@ -173,7 +193,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                           ),
                           child: const Center(
                             child: Text(
-                              '\$',
+                              'Rs.',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: Sizes.s12,
@@ -198,7 +218,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                           ),
                           child: const Center(
                             child: Text(
-                              '\$',
+                              'Rs.',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: Sizes.s12,

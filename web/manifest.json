@@ -1,6 +1,6 @@
 {
-    "name": "food_flow_app",
-    "short_name": "food_flow_app",
+    "name": "Downtown Chicago",
+    "short_name": "Downtown Chicago",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

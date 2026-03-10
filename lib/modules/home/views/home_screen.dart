@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:food_flow_app/core/widgets/animated_list_item.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/core/firebase/firebase_service.dart';
-import 'package:food_flow_app/modules/home/models/category_model.dart';
-import 'package:food_flow_app/models/restaurant_model.dart';
-import 'package:food_flow_app/routes/route_constants.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/widgets/animated_list_item.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/core/firebase/firebase_service.dart';
+import 'package:downtown/core/di/dependency_injection.dart';
+import 'package:downtown/modules/home/models/category_model.dart';
+import 'package:downtown/modules/notifications/services/notification_service.dart';
+import 'package:downtown/models/restaurant_model.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class Category {
   final String name;
@@ -30,6 +33,26 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   bool get wantKeepAlive => true;
 
   String? _selectedCategoryName;
+  final _authController = DependencyInjection.instance.authController;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen to auth controller changes
+    _authController.addListener(_onAuthChanged);
+  }
+
+  @override
+  void dispose() {
+    _authController.removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  void _onAuthChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,8 +104,12 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
           // Delivery Location
           Expanded(
             child: GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(context, Routes.locationPermission);
+              onTap: () async {
+                final result = await Navigator.pushNamed(context, Routes.addressSelection);
+                if (result == true && mounted) {
+                  // Address was updated, refresh the screen
+                  setState(() {});
+                }
               },
               child: Row(
                 children: [
@@ -91,9 +118,16 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                     style: AppTextStyles.label.copyWith(color: const Color(0xFFFF6B35), fontSize: Sizes.s10, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(width: Sizes.s4),
-                  Text(
-                    'Halal Lab office',
-                    style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w500),
+                  Expanded(
+                    child: Text(
+                      _authController.currentUser?.address ?? 'Tap to set location',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   Icon(TablerIconsHelper.arrowDown, size: Sizes.s20, color: Theme.of(context).colorScheme.onSurface),
                 ],
@@ -102,57 +136,97 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
           ),
 
           // Notification Icon
-          Stack(
-            children: [
-              IconButton(
-                icon: Icon(TablerIconsHelper.bell, color: Theme.of(context).colorScheme.onSurface, size: Sizes.s24),
-                onPressed: () {
-                  Navigator.pushNamed(context, Routes.notifications);
+          Builder(
+            builder: (context) {
+              final currentUser = _authController.currentUser;
+              if (currentUser == null) {
+                return IconButton(
+                  icon: Icon(TablerIconsHelper.bell, color: Theme.of(context).colorScheme.onSurface, size: Sizes.s24),
+                  onPressed: () {
+                    Navigator.pushNamed(context, Routes.notifications);
+                  },
+                );
+              }
+
+              return StreamBuilder<int>(
+                stream: NotificationService.getUnreadCount(currentUser.id),
+                builder: (context, snapshot) {
+                  // Handle loading and error states
+                  if (snapshot.hasError) {
+                    debugPrint('Error loading unread count: ${snapshot.error}');
+                    return IconButton(
+                      icon: Icon(TablerIconsHelper.bell, color: Theme.of(context).colorScheme.onSurface, size: Sizes.s24),
+                      onPressed: () {
+                        Navigator.pushNamed(context, Routes.notifications);
+                      },
+                    );
+                  }
+
+                  final unreadCount = snapshot.data ?? 0;
+                  
+                  return Stack(
+                    children: [
+                      IconButton(
+                        icon: Icon(TablerIconsHelper.bell, color: Theme.of(context).colorScheme.onSurface, size: Sizes.s24),
+                        onPressed: () {
+                          Navigator.pushNamed(context, Routes.notifications);
+                        },
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: Sizes.s8,
+                          top: Sizes.s8,
+                          child: Container(
+                            width: Sizes.s18,
+                            height: Sizes.s18,
+                            decoration: const BoxDecoration(color: Color(0xFFFF6B35), shape: BoxShape.circle),
+                            child: Center(
+                              child: Text(
+                                unreadCount > 99 ? '99+' : unreadCount.toString(),
+                                style: AppTextStyles.captionTiny.copyWith(color: Colors.white, fontSize: Sizes.s10),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
                 },
-              ),
-              Positioned(
-                right: Sizes.s8,
-                top: Sizes.s8,
-                child: Container(
-                  width: Sizes.s18,
-                  height: Sizes.s18,
-                  decoration: const BoxDecoration(color: Color(0xFFFF6B35), shape: BoxShape.circle),
-                  child: Center(
-                    child: Text(
-                      '3',
-                      style: AppTextStyles.captionTiny.copyWith(color: Colors.white, fontSize: Sizes.s10),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              );
+            },
           ),
 
           // Cart Icon
-          Stack(
-            children: [
-              IconButton(
-                icon: Icon(TablerIconsHelper.shoppingBag, color: Theme.of(context).colorScheme.onSurface, size: Sizes.s24),
-                onPressed: () {
-                  Navigator.pushNamed(context, Routes.cart);
-                },
-              ),
-              Positioned(
-                right: Sizes.s8,
-                top: Sizes.s8,
-                child: Container(
-                  width: Sizes.s18,
-                  height: Sizes.s18,
-                  decoration: const BoxDecoration(color: Color(0xFFFF6B35), shape: BoxShape.circle),
-                  child: Center(
-                    child: Text(
-                      '2',
-                      style: AppTextStyles.captionTiny.copyWith(color: Colors.white, fontSize: Sizes.s10),
-                    ),
+          ListenableBuilder(
+            listenable: DependencyInjection.instance.cartController,
+            builder: (context, _) {
+              final itemCount = DependencyInjection.instance.cartController.itemCount;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: Icon(TablerIconsHelper.shoppingBag, color: Theme.of(context).colorScheme.onSurface, size: Sizes.s24),
+                    onPressed: () {
+                      Navigator.pushNamed(context, Routes.cart);
+                    },
                   ),
-                ),
-              ),
-            ],
+                  if (itemCount > 0)
+                    Positioned(
+                      right: Sizes.s8,
+                      top: Sizes.s8,
+                      child: Container(
+                        width: Sizes.s18,
+                        height: Sizes.s18,
+                        decoration: const BoxDecoration(color: Color(0xFFFF6B35), shape: BoxShape.circle),
+                        child: Center(
+                          child: Text(
+                            itemCount > 99 ? '99+' : itemCount.toString(),
+                            style: AppTextStyles.captionTiny.copyWith(color: Colors.white, fontSize: Sizes.s10),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -224,38 +298,23 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         SizedBox(
           height: Sizes.s100,
           child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseService.firestore
-                .collection('categories')
-                .where('isActive', isEqualTo: true)
-                .snapshots(),
+            stream: FirebaseService.firestore.collection('categories').where('isActive', isEqualTo: true).snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
 
               if (snapshot.hasError) {
-                return Center(
-                  child: Text('Error: ${snapshot.error}'),
-                );
+                return Center(child: Text('Error: ${snapshot.error}'));
               }
 
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return Center(
-                  child: Text(
-                    'No categories available',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                    ),
-                  ),
+                  child: Text('No categories available', style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
                 );
               }
 
-              final categories = snapshot.data!.docs
-                  .map((doc) => CategoryModel.fromFirestore(
-                        doc.data() as Map<String, dynamic>,
-                        doc.id,
-                      ))
-                  .toList();
+              final categories = snapshot.data!.docs.map((doc) => CategoryModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id)).toList();
 
               // Sort by order if available, then by name
               categories.sort((a, b) {
@@ -272,11 +331,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
               // Add "All" category at the beginning
               final allCategories = [
                 const Category(name: 'All', imageUrl: '', isSelected: true),
-                ...categories.map((cat) => Category(
-                      name: cat.name,
-                      imageUrl: cat.imageUrl,
-                      isSelected: _selectedCategoryName == cat.name,
-                    )),
+                ...categories.map((cat) => Category(name: cat.name, imageUrl: cat.imageUrl, isSelected: _selectedCategoryName == cat.name)),
               ];
 
               return ListView.builder(
@@ -287,11 +342,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                   final category = allCategories[index];
                   return Padding(
                     padding: EdgeInsets.only(right: index < allCategories.length - 1 ? Sizes.s16 : 0),
-                    child: AnimatedListItem(
-                      index: index,
-                      delay: const Duration(milliseconds: 30),
-                      child: _buildCategoryItem(category, context),
-                    ),
+                    child: AnimatedListItem(index: index, delay: const Duration(milliseconds: 30), child: _buildCategoryItem(category, context)),
                   );
                 },
               );
@@ -399,39 +450,23 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         ),
         const SizedBox(height: Sizes.s16),
         StreamBuilder<QuerySnapshot>(
-          stream: FirebaseService.firestore
-              .collection('restaurants')
-              .where('isActive', isEqualTo: true)
-              .where('isOpen', isEqualTo: true)
-              .snapshots(),
+          stream: FirebaseService.firestore.collection('restaurants').where('isActive', isEqualTo: true).where('isOpen', isEqualTo: true).snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
 
             if (snapshot.hasError) {
-              return Center(
-                child: Text('Error: ${snapshot.error}'),
-              );
+              return Center(child: Text('Error: ${snapshot.error}'));
             }
 
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return Center(
-                child: Text(
-                  'No restaurants available',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  ),
-                ),
+                child: Text('No restaurants available', style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
               );
             }
 
-            final restaurants = snapshot.data!.docs
-                .map((doc) => Restaurant.fromFirestore(
-                      doc.data() as Map<String, dynamic>,
-                      doc.id,
-                    ))
-                .toList()
+            final restaurants = snapshot.data!.docs.map((doc) => Restaurant.fromFirestore(doc.data() as Map<String, dynamic>, doc.id)).toList()
               ..sort((a, b) => b.rating.compareTo(a.rating)); // Sort by rating descending in memory
 
             // Limit to 10 after sorting
@@ -442,10 +477,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
               physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: Sizes.s0),
               itemCount: limitedRestaurants.length,
-              itemBuilder: (context, index) => AnimatedListItem(
-                index: index,
-                child: _buildRestaurantCard(limitedRestaurants[index], context),
-              ),
+              itemBuilder: (context, index) => AnimatedListItem(index: index, child: _buildRestaurantCard(limitedRestaurants[index], context)),
             );
           },
         ),

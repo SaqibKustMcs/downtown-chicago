@@ -25,15 +25,19 @@ class TablerIconsHelper {
 
   // User & Profile
   static const person = TablerIcons.user;
+  static const user = TablerIcons.user; // Alias for person
   static const personOutline = TablerIcons.user_circle;
+  static const users = TablerIcons.users;
 
   // Orders
   static const receipt = TablerIcons.receipt;
 
-      // Profile & Settings
-      static const location = TablerIcons.map_pin;
-      static const payment = TablerIcons.credit_card;
-      static const creditCard = TablerIcons.credit_card;
+  // Profile & Settings
+  static const location = TablerIcons.map_pin;
+  static const navigation = TablerIcons.navigation;
+  static const world = TablerIcons.world;
+  static const payment = TablerIcons.credit_card;
+  static const creditCard = TablerIcons.credit_card;
   static const favorite = TablerIcons.heart;
   static const settings = TablerIcons.settings;
   static const help = TablerIcons.help;
@@ -43,7 +47,10 @@ class TablerIconsHelper {
   // Common
   static const home = TablerIcons.home;
   static const homeOutline = TablerIcons.home_2;
-  
+  static const dashboard = TablerIcons.layout_dashboard;
+  static const buildingStore = TablerIcons.building_store;
+  static const category = TablerIcons.category;
+
   // Additional icons
   static const chevronDown = TablerIcons.chevron_down;
   static const filter = TablerIcons.filter;
@@ -55,7 +62,19 @@ class TablerIconsHelper {
   static const edit = TablerIcons.pencil;
   static const check = TablerIcons.check;
   static const trash = TablerIcons.trash;
-  
+
+  // Communication
+  static const phone = TablerIcons.phone;
+  static const mail = TablerIcons.mail;
+  static const mailOff = TablerIcons.mail_off;
+
+  // UI Elements
+  static const x = TablerIcons.x;
+  static const calendar = TablerIcons.calendar;
+  static const dotsVertical = TablerIcons.dots_vertical;
+  static const toggleRight = TablerIcons.toggle_right;
+  static const toggleLeft = TablerIcons.toggle_left;
+
   // Theme
   static const sun = TablerIcons.sun;
   static const moon = TablerIcons.moon;

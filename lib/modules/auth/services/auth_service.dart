@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:food_flow_app/core/base/base_service.dart';
-import 'package:food_flow_app/modules/auth/models/user_model.dart';
-import 'package:food_flow_app/modules/auth/repositories/auth_repository.dart';
+import 'package:downtown/core/base/base_service.dart';
+import 'package:downtown/modules/auth/models/user_model.dart';
+import 'package:downtown/modules/auth/repositories/auth_repository.dart';
 
 /// Auth Service - Business logic for authentication
 class AuthService extends BaseService<UserModel> {
@@ -40,9 +40,39 @@ class AuthService extends BaseService<UserModel> {
     await _authRepository.sendEmailVerification();
   }
 
+  /// Check if email exists in the system
+  Future<bool> checkEmailExists(String email) async {
+    try {
+      // Normalize email to lowercase for consistent lookup
+      final normalizedEmail = email.trim().toLowerCase();
+      // Check in Firestore users collection
+      final userDoc = await _authRepository.checkUserExists(normalizedEmail);
+      return userDoc != null;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// Send password reset email
+  /// Note: This method checks if email exists before sending to prevent sending codes to unregistered emails
   Future<void> sendPasswordResetEmail(String email) async {
-    await _authRepository.sendPasswordResetEmail(email);
+    // Normalize email to lowercase for consistent lookup
+    final normalizedEmail = email.trim().toLowerCase();
+    
+    // First check if email exists in Firestore
+    final emailExists = await checkEmailExists(normalizedEmail);
+    if (!emailExists) {
+      // Throw exception to prevent sending reset email to unregistered email
+      // The error message will be handled generically in the UI for security
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'No account found with this email address',
+      );
+    }
+    
+    // Email exists, proceed with sending reset email
+    // Use normalized email for Firebase Auth as well
+    await _authRepository.sendPasswordResetEmail(normalizedEmail);
   }
 
   /// Confirm password reset with code
@@ -89,5 +119,43 @@ class AuthService extends BaseService<UserModel> {
   /// Check if user is authenticated
   bool isAuthenticated() {
     return getCurrentUserSync() != null;
+  }
+
+  /// Update user address and location
+  Future<void> updateUserLocation({
+    required String address,
+    required double latitude,
+    required double longitude,
+  }) async {
+    final currentUser = await getCurrentUser();
+    if (currentUser == null) {
+      throw Exception('User not authenticated');
+    }
+
+    final updatedUser = currentUser.copyWith(
+      address: address,
+      userLatLng: {
+        'latitude': latitude,
+        'longitude': longitude,
+      },
+      updatedAt: DateTime.now(),
+    );
+
+    await _authRepository.update(currentUser.id, updatedUser);
+  }
+
+  /// Update user phone number
+  Future<void> updateUserPhoneNumber(String phoneNumber) async {
+    final currentUser = await getCurrentUser();
+    if (currentUser == null) {
+      throw Exception('User not authenticated');
+    }
+
+    final updatedUser = currentUser.copyWith(
+      phoneNumber: phoneNumber,
+      updatedAt: DateTime.now(),
+    );
+
+    await _authRepository.update(currentUser.id, updatedUser);
   }
 }

@@ -1,111 +1,122 @@
 import 'package:flutter/material.dart';
-import 'package:food_flow_app/core/widgets/animated_list_item.dart';
-import 'package:food_flow_app/models/restaurant_model.dart';
-import 'package:food_flow_app/modules/widgets/restaurant_card.dart';
-import 'package:food_flow_app/modules/widgets/top_navigation_bar.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:downtown/core/widgets/animated_list_item.dart';
+import 'package:downtown/core/firebase/firebase_service.dart';
+import 'package:downtown/core/di/dependency_injection.dart';
+import 'package:downtown/modules/auth/models/user_model.dart';
+import 'package:downtown/models/restaurant_model.dart';
+import 'package:downtown/modules/widgets/restaurant_card.dart';
+import 'package:downtown/modules/widgets/top_navigation_bar.dart';
+import 'package:downtown/modules/admin/views/create_restaurant_screen.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
-class AllRestaurantsScreen extends StatelessWidget {
+class AllRestaurantsScreen extends StatefulWidget {
   const AllRestaurantsScreen({super.key});
 
-  static const List<Restaurant> _allRestaurants = [
-    Restaurant(
-      name: 'Rose Garden Restaurant',
-      cuisines: 'Burger - Chicken - Rice - Wings',
-      imageUrl: 'https://www.recipetineats.com/tachyon/2022/08/Stack-of-cheeseburgers.jpg?resize=900%2C1125&zoom=1',
-      rating: 4.7,
-      deliveryCost: 'Free',
-      deliveryTime: '20 min',
-    ),
-    Restaurant(
-      name: 'Burger King',
-      cuisines: 'Burger - Fries - Chicken',
-      imageUrl: 'https://www.recipetineats.com/tachyon/2022/08/Stack-of-cheeseburgers.jpg?resize=900%2C1125&zoom=1',
-      rating: 4.5,
-      deliveryCost: 'Free',
-      deliveryTime: '25 min',
-    ),
-    Restaurant(
-      name: 'Pizza Hut',
-      cuisines: 'Pizza - Pasta - Wings',
-      imageUrl: 'https://www.recipetineats.com/tachyon/2022/08/Stack-of-cheeseburgers.jpg?resize=900%2C1125&zoom=1',
-      rating: 4.6,
-      deliveryCost: '\$2.99',
-      deliveryTime: '30 min',
-    ),
-    Restaurant(
-      name: 'KFC',
-      cuisines: 'Chicken - Wings - Fries',
-      imageUrl: 'https://www.recipetineats.com/tachyon/2022/08/Stack-of-cheeseburgers.jpg?resize=900%2C1125&zoom=1',
-      rating: 4.4,
-      deliveryCost: 'Free',
-      deliveryTime: '22 min',
-    ),
-    Restaurant(
-      name: 'McDonald\'s',
-      cuisines: 'Burger - Fries - Nuggets',
-      imageUrl: 'https://www.recipetineats.com/tachyon/2022/08/Stack-of-cheeseburgers.jpg?resize=900%2C1125&zoom=1',
-      rating: 4.3,
-      deliveryCost: 'Free',
-      deliveryTime: '18 min',
-    ),
-    Restaurant(
-      name: 'Subway',
-      cuisines: 'Sandwich - Salad - Wrap',
-      imageUrl: 'https://www.recipetineats.com/tachyon/2022/08/Stack-of-cheeseburgers.jpg?resize=900%2C1125&zoom=1',
-      rating: 4.2,
-      deliveryCost: 'Free',
-      deliveryTime: '15 min',
-    ),
-    Restaurant(
-      name: 'Domino\'s Pizza',
-      cuisines: 'Pizza - Pasta - Bread',
-      imageUrl: 'https://www.recipetineats.com/tachyon/2022/08/Stack-of-cheeseburgers.jpg?resize=900%2C1125&zoom=1',
-      rating: 4.5,
-      deliveryCost: '\$1.99',
-      deliveryTime: '25 min',
-    ),
-    Restaurant(
-      name: 'Taco Bell',
-      cuisines: 'Tacos - Burrito - Nachos',
-      imageUrl: 'https://www.recipetineats.com/tachyon/2022/08/Stack-of-cheeseburgers.jpg?resize=900%2C1125&zoom=1',
-      rating: 4.1,
-      deliveryCost: 'Free',
-      deliveryTime: '20 min',
-    ),
-    Restaurant(
-      name: 'Starbucks',
-      cuisines: 'Coffee - Pastry - Sandwiches',
-      imageUrl: 'https://www.recipetineats.com/tachyon/2022/08/Stack-of-cheeseburgers.jpg?resize=900%2C1125&zoom=1',
-      rating: 4.6,
-      deliveryCost: '\$3.99',
-      deliveryTime: '18 min',
-    ),
-    Restaurant(
-      name: 'Wendy\'s',
-      cuisines: 'Burger - Chicken - Fries',
-      imageUrl: 'https://www.recipetineats.com/tachyon/2022/08/Stack-of-cheeseburgers.jpg?resize=900%2C1125&zoom=1',
-      rating: 4.4,
-      deliveryCost: 'Free',
-      deliveryTime: '22 min',
-    ),
-    Restaurant(
-      name: 'Dunkin\' Donuts',
-      cuisines: 'Donuts - Coffee - Breakfast',
-      imageUrl: 'https://www.recipetineats.com/tachyon/2022/08/Stack-of-cheeseburgers.jpg?resize=900%2C1125&zoom=1',
-      rating: 4.3,
-      deliveryCost: '\$2.99',
-      deliveryTime: '20 min',
-    ),
-    Restaurant(
-      name: 'Chipotle',
-      cuisines: 'Burrito - Bowl - Tacos',
-      imageUrl: 'https://www.recipetineats.com/tachyon/2022/08/Stack-of-cheeseburgers.jpg?resize=900%2C1125&zoom=1',
-      rating: 4.5,
-      deliveryCost: 'Free',
-      deliveryTime: '25 min',
-    ),
-  ];
+  @override
+  State<AllRestaurantsScreen> createState() => _AllRestaurantsScreenState();
+}
+
+class _AllRestaurantsScreenState extends State<AllRestaurantsScreen> {
+  final _authController = DependencyInjection.instance.authController;
+  bool _isAdmin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAdminStatus();
+    _authController.addListener(_onAuthChanged);
+  }
+
+  @override
+  void dispose() {
+    _authController.removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  void _checkAdminStatus() {
+    final currentUser = _authController.currentUser;
+    _isAdmin = currentUser?.userType == UserType.admin;
+  }
+
+  void _onAuthChanged() {
+    if (mounted) {
+      setState(() {
+        _checkAdminStatus();
+      });
+    }
+  }
+
+  Future<void> _deleteRestaurant(Restaurant restaurant) async {
+    if (restaurant.id == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Restaurant'),
+        content: Text('Are you sure you want to delete "${restaurant.name}"? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await FirebaseService.firestore
+            .collection('restaurants')
+            .doc(restaurant.id)
+            .delete();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Restaurant deleted successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Error deleting restaurant: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _editRestaurant(Restaurant restaurant) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateRestaurantScreen(restaurant: restaurant),
+      ),
+    );
+    if (result == true && mounted) {
+      // Restaurant was updated, refresh is automatic with StreamBuilder
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Restaurant updated successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -119,13 +130,89 @@ class AllRestaurantsScreen extends StatelessWidget {
 
             // Restaurants List
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: Sizes.s12, vertical: Sizes.s16),
-                itemCount: _allRestaurants.length,
-                itemBuilder: (context, index) {
-                  return AnimatedListItem(
-                    index: index,
-                    child: RestaurantCardHorizontal(restaurant: _allRestaurants[index]),
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseService.firestore
+                    .collection('restaurants')
+                    .where('isActive', isEqualTo: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: Sizes.s48,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                          const SizedBox(height: Sizes.s16),
+                          Text(
+                            'Error loading restaurants',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.restaurant,
+                            size: Sizes.s64,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.3),
+                          ),
+                          const SizedBox(height: Sizes.s16),
+                          Text(
+                            'No restaurants available',
+                            style: AppTextStyles.heading3.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  final restaurants = snapshot.data!.docs
+                      .map((doc) => Restaurant.fromFirestore(
+                            doc.data() as Map<String, dynamic>,
+                            doc.id,
+                          ))
+                      .toList()
+                    ..sort((a, b) => b.rating.compareTo(a.rating));
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Sizes.s12,
+                      vertical: Sizes.s16,
+                    ),
+                    itemCount: restaurants.length,
+                    itemBuilder: (context, index) {
+                      final restaurant = restaurants[index];
+                      return AnimatedListItem(
+                        index: index,
+                        child: _buildRestaurantCardWithActions(restaurant),
+                      );
+                    },
                   );
                 },
               ),
@@ -133,6 +220,94 @@ class AllRestaurantsScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRestaurantCardWithActions(Restaurant restaurant) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final iconBg = Theme.of(context).colorScheme.surface.withOpacity(isDark ? 0.72 : 0.92);
+    final iconFg = Theme.of(context).colorScheme.onSurface.withOpacity(isDark ? 0.92 : 0.75);
+    final iconBorder = Theme.of(context).colorScheme.onSurface.withOpacity(isDark ? 0.18 : 0.10);
+    return Stack(
+      children: [
+        RestaurantCardHorizontal(restaurant: restaurant),
+        if (_isAdmin)
+          Positioned(
+            top: Sizes.s8,
+            right: Sizes.s8,
+            child: PopupMenuButton<String>(
+              tooltip: 'Restaurant options',
+              color: Theme.of(context).cardColor,
+              elevation: 10,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(Sizes.s12),
+                side: BorderSide(color: iconBorder),
+              ),
+              icon: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: iconBorder),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.35 : 0.10),
+                      blurRadius: Sizes.s10,
+                      offset: const Offset(0, Sizes.s4),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(Sizes.s8),
+                  child: Icon(
+                    Icons.more_vert,
+                    size: Sizes.s18,
+                    color: iconFg,
+                  ),
+                ),
+              ),
+              onSelected: (value) {
+                if (value == 'edit') {
+                  _editRestaurant(restaurant);
+                } else if (value == 'delete') {
+                  _deleteRestaurant(restaurant);
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.edit,
+                        size: Sizes.s18,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      const SizedBox(width: Sizes.s8),
+                      const Text('Edit'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.delete,
+                        size: Sizes.s18,
+                        color: Colors.red,
+                      ),
+                      const SizedBox(width: Sizes.s8),
+                      Text(
+                        'Delete',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

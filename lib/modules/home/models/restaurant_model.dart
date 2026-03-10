@@ -40,7 +40,7 @@ class RestaurantModel {
       imageUrl: data['imageUrl'] ?? '',
       rating: (data['rating'] ?? 0).toDouble(),
       deliveryCost: data['deliveryCost'] ?? 'Free',
-      deliveryTime: data['deliveryTime'] ?? '20 min',
+      deliveryTime: data['deliveryTime'] ?? '20 - 50 mins',
       address: data['address'],
       latitude: data['latitude']?.toDouble(),
       longitude: data['longitude']?.toDouble(),

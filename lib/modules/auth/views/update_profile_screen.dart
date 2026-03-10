@@ -2,14 +2,15 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:food_flow_app/core/di/dependency_injection.dart';
-import 'package:food_flow_app/core/firebase/firebase_service.dart';
-import 'package:food_flow_app/modules/auth/widgets/custom_text_field.dart';
-import 'package:food_flow_app/routes/route_constants.dart';
-import 'package:food_flow_app/styles/colors/custom_colors.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
+import 'package:intl_phone_field/countries.dart';
+import 'package:downtown/core/di/dependency_injection.dart';
+import 'package:downtown/core/firebase/firebase_service.dart';
+import 'package:downtown/modules/auth/widgets/custom_text_field.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/colors/custom_colors.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class UpdateProfileScreen extends StatefulWidget {
@@ -26,7 +27,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   File? _selectedImage;
   bool _isLoading = false;
   bool _isUploading = false;
-  String _countryCode = '+1';
+  String _countryCode = '+92'; // Pakistan
   String _phoneNumber = '';
 
   @override
@@ -324,9 +325,10 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                         const SizedBox(height: Sizes.s8),
                         IntlPhoneField(
                           controller: _phoneController,
-                          initialCountryCode: 'US',
+                          initialCountryCode: 'PK',
+                          countries: countries.where((c) => c.code == 'PK').toList(),
                           decoration: InputDecoration(
-                            hintText: 'Enter your phone number',
+                            hintText: 'Enter your Pakistan phone number',
                             hintStyle: TextStyle(
                               color: isDark
                                   ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)

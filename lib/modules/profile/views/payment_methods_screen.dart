@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:food_flow_app/core/widgets/animated_list_item.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/modules/widgets/top_navigation_bar.dart';
-import 'package:food_flow_app/routes/route_constants.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/widgets/animated_list_item.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/modules/widgets/top_navigation_bar.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class PaymentMethod {
   final String id;
@@ -38,7 +38,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       type: 'Mastercard',
       cardNumber: '**** **** **** 1234',
       expiryDate: '12/25',
-      cardHolderName: 'Vishal Khadok',
+      cardHolderName: 'Cardholder Name',
       isDefault: true,
     ),
     const PaymentMethod(
@@ -46,7 +46,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       type: 'Visa',
       cardNumber: '**** **** **** 5678',
       expiryDate: '06/26',
-      cardHolderName: 'Vishal Khadok',
+      cardHolderName: 'Cardholder Name',
       isDefault: false,
     ),
   ];
@@ -66,17 +66,134 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     });
   }
 
-  void _deletePaymentMethod(String id) {
-    setState(() {
-      _paymentMethods.removeWhere((method) => method.id == id);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Payment method removed'),
+  Future<void> _deletePaymentMethod(String id) async {
+    // First confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).cardColor,
-        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Sizes.s16),
+        ),
+        title: Text(
+          'Delete Payment Method',
+          style: AppTextStyles.heading3.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to delete this payment method?',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: Text(
+              'Delete',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
+
+    if (confirm != true) return;
+
+    // Second confirmation dialog
+    final finalConfirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Sizes.s16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.red,
+              size: Sizes.s24,
+            ),
+            const SizedBox(width: Sizes.s12),
+            Expanded(
+              child: Text(
+                'Final Confirmation',
+                style: AppTextStyles.heading3.copyWith(
+                  color: Colors.red,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'This action cannot be undone. Are you absolutely sure you want to delete this payment method?',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: Text(
+              'Yes, Delete',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (finalConfirm != true) return;
+
+    if (mounted) {
+      setState(() {
+        _paymentMethods.removeWhere((method) => method.id == id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Payment method removed',
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          backgroundColor: Theme.of(context).cardColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -233,17 +350,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                       const SizedBox(height: Sizes.s4),
                       if (method.cardNumber != null)
                         Text(
-                          method.cardNumber!,
+                          _getLastFourDigits(method.cardNumber!),
                           style: AppTextStyles.bodySmall.copyWith(
                             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                          ),
-                        ),
-                      if (method.expiryDate != null)
-                        Text(
-                          'Expires ${method.expiryDate}',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                            fontSize: Sizes.s12,
                           ),
                         ),
                     ],
@@ -256,11 +365,11 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     TablerIconsHelper.menu,
                     color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                   ),
-                  onSelected: (value) {
+                  onSelected: (value) async {
                     if (value == 'set_default') {
                       _setAsDefault(method.id);
                     } else if (value == 'delete') {
-                      _deletePaymentMethod(method.id);
+                      await _deletePaymentMethod(method.id);
                     }
                   },
                   itemBuilder: (context) => [
@@ -328,7 +437,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     type: 'Mastercard',
                     cardNumber: '**** **** **** 9999',
                     expiryDate: '12/27',
-                    cardHolderName: 'Vishal Khadok',
+                    cardHolderName: 'Cardholder Name',
                     isDefault: false,
                   ),
                 );
@@ -367,5 +476,16 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
         ),
       ),
     );
+  }
+
+  /// Extract last 4 digits from card number
+  String _getLastFourDigits(String cardNumber) {
+    // Remove all spaces and asterisks, then get last 4 digits
+    final cleaned = cardNumber.replaceAll(RegExp(r'[\s*]'), '');
+    if (cleaned.length >= 4) {
+      final lastFour = cleaned.substring(cleaned.length - 4);
+      return '**** **** **** $lastFour';
+    }
+    return cardNumber; // Return original if can't parse
   }
 }

@@ -1,4 +1,4 @@
-import 'package:food_flow_app/core/base/base_repository.dart';
+import 'package:downtown/core/base/base_repository.dart';
 
 /// Base Service Interface
 /// All services should implement this interface

@@ -1,7 +1,7 @@
-import 'package:food_flow_app/core/services/app_preferences_service.dart';
-import 'package:food_flow_app/core/services/secure_storage_service.dart';
-import 'package:food_flow_app/core/base/base_datasource.dart';
-import 'package:food_flow_app/modules/auth/models/user_model.dart';
+import 'package:downtown/core/services/app_preferences_service.dart';
+import 'package:downtown/core/services/secure_storage_service.dart';
+import 'package:downtown/core/base/base_datasource.dart';
+import 'package:downtown/modules/auth/models/user_model.dart';
 
 /// Local DataSource for Authentication (Secure Storage, SharedPreferences)
 class AuthLocalDataSource implements LocalDataSource<UserModel> {

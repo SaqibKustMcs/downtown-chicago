@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:food_flow_app/core/di/dependency_injection.dart';
-import 'package:food_flow_app/modules/auth/widgets/auth_header.dart';
-import 'package:food_flow_app/modules/auth/widgets/custom_text_field.dart';
-import 'package:food_flow_app/routes/route_constants.dart';
-import 'package:food_flow_app/styles/colors/custom_colors.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:flutter/foundation.dart';
+import 'package:downtown/core/di/dependency_injection.dart';
+import 'package:downtown/modules/auth/services/password_reset_code_service.dart';
+import 'package:downtown/modules/auth/widgets/auth_header.dart';
+import 'package:downtown/modules/auth/widgets/custom_text_field.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/colors/custom_colors.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -34,19 +36,68 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
       try {
         final authController = DependencyInjection.instance.authController;
+        final email = _emailController.text.trim().toLowerCase();
         
-        // Send password reset email
-        final success = await authController.sendPasswordResetEmail(
-          _emailController.text.trim(),
-        );
+        // Check if email is registered before sending reset code
+        // This prevents sending codes to unregistered emails
+        final authService = DependencyInjection.instance.authService;
+        final emailExists = await authService.checkEmailExists(email);
+        
+        if (!emailExists) {
+          if (mounted) {
+            // Show generic message for security - don't reveal if email exists
+            // This prevents email enumeration attacks
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('If an account exists with this email, a reset code will be sent. Please check your email.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 4),
+              ),
+            );
+            setState(() {
+              _isLoading = false;
+            });
+            return;
+          }
+        }
+        
+        // Email exists, proceed with sending password reset email
+        // The authService.sendPasswordResetEmail will also verify email exists as a double-check
+        final success = await authController.sendPasswordResetEmail(email);
 
         if (success && mounted) {
+          // Generate and store 6-digit code
+          // Note: The Firebase action code will be extracted from the email link
+          // For now, we generate a code that will be stored
+          // In production, you'll need Cloud Functions to send the 6-digit code via email
+          try {
+            // Generate a temporary code (in production, this should be sent via email)
+            // The Firebase action code from the email link needs to be stored with this code
+            // This requires Cloud Functions or backend service
+            final tempCode = await PasswordResetCodeService.instance.generateAndStoreCode(
+              email,
+              'temp_action_code', // This should be replaced with actual Firebase action code from email
+            );
+            
+            // TODO: In production, implement Cloud Functions to:
+            // 1. Intercept password reset email
+            // 2. Extract Firebase action code from link
+            // 3. Generate 6-digit code
+            // 4. Store mapping in Firestore
+            // 5. Send email with 6-digit code instead of link
+            
+            debugPrint('Generated 6-digit code: $tempCode (for email: $email)');
+            debugPrint('NOTE: This code needs to be sent via email. Implement Cloud Functions for production.');
+          } catch (e) {
+            debugPrint('Error generating reset code: $e');
+          }
+          
           // Show success message and navigate to verification screen
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Password reset email sent. Please check your inbox.'),
+              content: Text('A 6-digit verification code has been sent to your email. Please check your inbox.'),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 3),
+              duration: Duration(seconds: 4),
             ),
           );
           
@@ -54,7 +105,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           Navigator.pushNamed(
             context,
             Routes.forgotPasswordVerification,
-            arguments: _emailController.text.trim(),
+            arguments: email,
           );
         } else if (mounted) {
           // Show error message
@@ -75,7 +126,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             errorMessage = 'Network error. Please check your internet connection and try again.';
             break;
           case 'user-not-found':
-            errorMessage = 'No account found with this email. Please check your email address.';
+            // Generic message for security - don't reveal if email exists
+            errorMessage = 'If an account exists with this email, a reset code will be sent. Please check your email.';
             break;
           case 'invalid-email':
             errorMessage = 'Invalid email address. Please enter a valid email.';

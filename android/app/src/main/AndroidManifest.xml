@@ -6,12 +6,21 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <!-- Push Notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Location: delivery address, delivery fee, and live rider tracking -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Background location: rider location updates during delivery when app is in background -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+    <!-- Phone Call Permission -->
+    <uses-permission android:name="android.permission.CALL_PHONE"/>
     <application
-        android:label="food_flow_app"
+        android:label="Down Town"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config">
+        <!-- Apache HTTP Legacy Library for Google Maps compatibility (Android 9+) -->
+        <uses-library android:name="org.apache.http.legacy" android:required="false"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -39,6 +48,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyCK6Qi-03sumx8A9TcjykuSSMb4HM8bw5Y"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

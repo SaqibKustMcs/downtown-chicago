@@ -13,6 +13,8 @@ class UserModel {
   final String email;
   final String? name;
   final String? phoneNumber;
+  final String? secondaryContactNumber; // Secondary contact number (for riders)
+  final String? cnic; // CNIC number (for riders)
   final String? photoUrl;
   final String? userImage; // Alias for photoUrl, kept for compatibility
   final String? bio;
@@ -23,7 +25,9 @@ class UserModel {
   final DateTime? updatedAt;
   final bool emailVerified;
   // Rider specific fields
-  final bool? isAvailable;
+  final bool? isOnline; // Rider online/offline status
+  final bool? isAvailable; // Rider availability (can be online but not available if has active order)
+  final String? activeOrderId; // Current active order ID
   final String? vehicleType;
   final String? vehicleNumber;
   // Admin specific fields
@@ -34,6 +38,8 @@ class UserModel {
     required this.email,
     this.name,
     this.phoneNumber,
+    this.secondaryContactNumber,
+    this.cnic,
     this.photoUrl,
     this.userImage,
     this.bio,
@@ -42,11 +48,13 @@ class UserModel {
     required this.userType,
     this.createdAt,
     this.updatedAt,
-    this.emailVerified = false,
-    this.isAvailable,
-    this.vehicleType,
-    this.vehicleNumber,
-    this.restaurantId,
+      this.emailVerified = false,
+      this.isOnline,
+      this.isAvailable,
+      this.activeOrderId,
+      this.vehicleType,
+      this.vehicleNumber,
+      this.restaurantId,
   });
 
   /// Create from Firestore document
@@ -66,6 +74,8 @@ class UserModel {
       email: data['email'] ?? '',
       name: data['name'],
       phoneNumber: data['phoneNumber'],
+      secondaryContactNumber: data['secondaryContactNumber'],
+      cnic: data['cnic'],
       photoUrl: data['photoUrl'] ?? data['userImage'],
       userImage: data['userImage'] ?? data['photoUrl'],
       bio: data['bio'],
@@ -79,7 +89,9 @@ class UserModel {
           ? (data['updatedAt'] as Timestamp).toDate()
           : null,
       emailVerified: data['emailVerified'] ?? false,
+      isOnline: data['isOnline'],
       isAvailable: data['isAvailable'],
+      activeOrderId: data['activeOrderId'],
       vehicleType: data['vehicleType'],
       vehicleNumber: data['vehicleNumber'],
       restaurantId: data['restaurantId'],
@@ -119,6 +131,8 @@ class UserModel {
       'email': email,
       if (name != null) 'name': name,
       if (phoneNumber != null) 'phoneNumber': phoneNumber,
+      if (secondaryContactNumber != null) 'secondaryContactNumber': secondaryContactNumber,
+      if (cnic != null) 'cnic': cnic,
       if (photoUrl != null) 'photoUrl': photoUrl,
       if (userImage != null) 'userImage': userImage,
       if (bio != null) 'bio': bio,
@@ -128,7 +142,9 @@ class UserModel {
       if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
       if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
       'emailVerified': emailVerified,
+      if (isOnline != null) 'isOnline': isOnline,
       if (isAvailable != null) 'isAvailable': isAvailable,
+      if (activeOrderId != null) 'activeOrderId': activeOrderId,
       if (vehicleType != null) 'vehicleType': vehicleType,
       if (vehicleNumber != null) 'vehicleNumber': vehicleNumber,
       if (restaurantId != null) 'restaurantId': restaurantId,
@@ -141,6 +157,8 @@ class UserModel {
     String? email,
     String? name,
     String? phoneNumber,
+    String? secondaryContactNumber,
+    String? cnic,
     String? photoUrl,
     String? userImage,
     String? bio,
@@ -150,7 +168,9 @@ class UserModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? emailVerified,
+    bool? isOnline,
     bool? isAvailable,
+    String? activeOrderId,
     String? vehicleType,
     String? vehicleNumber,
     String? restaurantId,
@@ -160,6 +180,8 @@ class UserModel {
       email: email ?? this.email,
       name: name ?? this.name,
       phoneNumber: phoneNumber ?? this.phoneNumber,
+      secondaryContactNumber: secondaryContactNumber ?? this.secondaryContactNumber,
+      cnic: cnic ?? this.cnic,
       photoUrl: photoUrl ?? this.photoUrl,
       userImage: userImage ?? this.userImage,
       bio: bio ?? this.bio,
@@ -169,7 +191,9 @@ class UserModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       emailVerified: emailVerified ?? this.emailVerified,
+      isOnline: isOnline ?? this.isOnline,
       isAvailable: isAvailable ?? this.isAvailable,
+      activeOrderId: activeOrderId ?? this.activeOrderId,
       vehicleType: vehicleType ?? this.vehicleType,
       vehicleNumber: vehicleNumber ?? this.vehicleNumber,
       restaurantId: restaurantId ?? this.restaurantId,

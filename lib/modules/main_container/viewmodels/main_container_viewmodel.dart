@@ -6,7 +6,10 @@ class MainContainerViewModel {
   int get currentIndex => currentIndexNotifier.value;
 
   void changeTab(int index) {
-    if (index >= 0 && index <= 3) {
+    // Allow indices 0-4 for customer (5 screens: Home, Search, Cart, Orders, Profile)
+    // Admin has 5 screens, Rider has 3 screens
+    // Maximum is 5 screens, so allow 0-4
+    if (index >= 0 && index <= 4) {
       currentIndexNotifier.value = index;
     }
   }

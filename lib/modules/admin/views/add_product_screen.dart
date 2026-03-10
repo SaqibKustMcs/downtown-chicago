@@ -2,15 +2,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:food_flow_app/core/di/dependency_injection.dart';
-import 'package:food_flow_app/core/firebase/firebase_service.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/models/food_item_model.dart';
-import 'package:food_flow_app/modules/home/models/category_model.dart';
-import 'package:food_flow_app/modules/widgets/top_navigation_bar.dart';
-import 'package:food_flow_app/modules/auth/widgets/custom_text_field.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/di/dependency_injection.dart';
+import 'package:downtown/core/middleware/role_guard.dart';
+import 'package:downtown/core/utils/currency_formatter.dart';
+import 'package:downtown/modules/auth/models/user_model.dart';
+import 'package:downtown/core/firebase/firebase_service.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/models/food_item_model.dart';
+import 'package:downtown/modules/home/models/category_model.dart';
+import 'package:downtown/modules/widgets/top_navigation_bar.dart';
+import 'package:downtown/modules/auth/widgets/custom_text_field.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class AddProductScreen extends StatefulWidget {
   final String? restaurantId;
@@ -35,6 +38,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
   File? _mainImage;
   List<File> _additionalImages = [];
   bool _isAvailable = true;
+  bool _isPopular = false;
+  int _displayOrder = 0;
+  final TextEditingController _displayOrderController = TextEditingController();
   bool _isLoading = false;
   bool _isUploading = false;
   String? _selectedRestaurantId;
@@ -95,6 +101,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _basePriceController.dispose();
+    _displayOrderController.dispose();
     _variationNameController.dispose();
     _variationPriceController.dispose();
     _variationDescriptionController.dispose();
@@ -322,6 +329,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
         'flavors': flavorsList,
         'isAvailable': _isAvailable,
         'isActive': true,
+        'isPopular': _isPopular,
+        'displayOrder': int.tryParse(_displayOrderController.text.trim()) ?? 0,
         'createdAt': DateTime.now(),
         'updatedAt': DateTime.now(),
       };
@@ -362,6 +371,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authController = DependencyInjection.instance.authController;
+    final currentUser = authController.currentUser;
+    
+    // Role guard - only admins can access
+    if (currentUser == null || currentUser.userType != UserType.admin) {
+      return RoleGuard.guard(
+        context: context,
+        requiredRole: UserType.admin,
+        child: const SizedBox.shrink(),
+        accessDeniedMessage: 'Access denied. Admin only.',
+      );
+    }
+    
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -840,7 +862,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        '${variation.name} - \$${variation.price.toStringAsFixed(2)}',
+                                        '${variation.name} - ${CurrencyFormatter.format(variation.price)}',
                                         style: AppTextStyles.bodyMedium.copyWith(
                                           fontWeight: FontWeight.w600,
                                         ),
@@ -930,7 +952,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        '${flavor.name}${flavor.price > 0 ? ' - +\$${flavor.price.toStringAsFixed(2)}' : ' (Free)'}',
+                                        '${flavor.name}${flavor.price > 0 ? ' - +${CurrencyFormatter.format(flavor.price)}' : ' (Free)'}',
                                         style: AppTextStyles.bodyMedium.copyWith(
                                           fontWeight: FontWeight.w600,
                                         ),
@@ -980,6 +1002,76 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             activeColor: const Color(0xFFFF6B35),
                           ),
                         ],
+                      ),
+
+                      const SizedBox(height: Sizes.s24),
+
+                      // Is Popular Toggle
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Mark as Popular',
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: Sizes.s4),
+                              Text(
+                                'Show in "Popular Products" section',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Switch(
+                            value: _isPopular,
+                            onChanged: (value) {
+                              setState(() {
+                                _isPopular = value;
+                              });
+                            },
+                            activeColor: const Color(0xFFFF6B35),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: Sizes.s24),
+
+                      // Display Order
+                      Text(
+                        'Display Order',
+                        style: AppTextStyles.label.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: Sizes.s8),
+                      CustomTextField(
+                        controller: _displayOrderController,
+                        hintText: '0 (lower numbers appear first)',
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value != null && value.trim().isNotEmpty) {
+                            final order = int.tryParse(value.trim());
+                            if (order == null || order < 0) {
+                              return 'Please enter a valid number (0 or greater)';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: Sizes.s8),
+                      Text(
+                        'Lower numbers appear first. Products with same order are sorted by name.',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        ),
                       ),
 
                       const SizedBox(height: Sizes.s32),

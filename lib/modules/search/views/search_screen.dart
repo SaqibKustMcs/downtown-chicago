@@ -2,16 +2,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:food_flow_app/core/widgets/animated_list_item.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/core/di/dependency_injection.dart';
-import 'package:food_flow_app/core/firebase/firebase_service.dart';
-import 'package:food_flow_app/models/food_item_model.dart';
-import 'package:food_flow_app/models/restaurant_model.dart';
-import 'package:food_flow_app/models/cart_item_model.dart';
-import 'package:food_flow_app/routes/route_constants.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/widgets/animated_list_item.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/core/utils/currency_formatter.dart';
+import 'package:downtown/core/di/dependency_injection.dart';
+import 'package:downtown/core/firebase/firebase_service.dart';
+import 'package:downtown/models/food_item_model.dart';
+import 'package:downtown/models/restaurant_model.dart';
+import 'package:downtown/modules/checkout/controllers/cart_controller.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -138,8 +139,46 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+  void _handleBackNavigation() {
+    if (!mounted) return;
+    
+    // Unfocus search field first to dismiss keyboard
+    _focusNode.unfocus();
+    
+    // Small delay to ensure keyboard is dismissed before navigation
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (!mounted) return;
+      
+      try {
+        // Safely pop the current route
+        final navigator = Navigator.of(context);
+        if (navigator.canPop()) {
+          navigator.pop();
+        } else {
+          // If we can't pop, navigate to main container and ensure it's properly initialized
+          navigator.pushNamedAndRemoveUntil(
+            Routes.mainContainer,
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        debugPrint('Error during back navigation: $e');
+        // Fallback: try to navigate to main container
+        if (mounted) {
+          try {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              Routes.mainContainer,
+              (route) => false,
+            );
+          } catch (e2) {
+            debugPrint('Error in fallback navigation: $e2');
+          }
+        }
+      }
+    });
+  }
+
+  Widget _buildScaffold() {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -185,25 +224,63 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  @override
+  Widget build(BuildContext context) {
+    // Check if SearchScreen is shown as part of MainContainerScreen's PageView
+    final route = ModalRoute.of(context);
+    final isPushedRoute = route?.settings.name == Routes.search && Navigator.canPop(context);
+    
+    final scaffoldWidget = _buildScaffold();
+    
+    // Only wrap with PopScope if it's a pushed route (not in PageView)
+    if (isPushedRoute) {
+      return PopScope(
+        canPop: true,
+        onPopInvoked: (didPop) {
+          if (didPop) {
+            // If pop was successful, ensure keyboard is dismissed
+            _focusNode.unfocus();
+          } else {
+            // If pop was prevented, handle navigation manually
+            _handleBackNavigation();
+          }
+        },
+        child: scaffoldWidget,
+      );
+    }
+    
+    return scaffoldWidget;
+  }
+
   Widget _buildHeader() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Check if SearchScreen is shown as part of MainContainerScreen's PageView
+    // If the route name is Routes.search, it means it's pushed as a separate route
+    // Otherwise, it's part of the PageView and we shouldn't show back button
+    final route = ModalRoute.of(context);
+    final isPushedRoute = route?.settings.name == Routes.search && Navigator.canPop(context);
+    final showBackButton = isPushedRoute;
+    
     return Row(
       children: [
-        // Back Button
-        IconButton(
-          icon: Container(
-            width: Sizes.s40,
-            height: Sizes.s40,
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05), blurRadius: Sizes.s4, offset: const Offset(0, Sizes.s2))],
+        // Back Button (only show if pushed as separate route)
+        if (showBackButton) ...[
+          IconButton(
+            icon: Container(
+              width: Sizes.s40,
+              height: Sizes.s40,
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05), blurRadius: Sizes.s4, offset: const Offset(0, Sizes.s2))],
+              ),
+              child: Icon(TablerIconsHelper.arrowLeft, color: Theme.of(context).colorScheme.onSurface, size: Sizes.s20),
             ),
-            child: Icon(TablerIconsHelper.arrowLeft, color: Theme.of(context).colorScheme.onSurface, size: Sizes.s20),
+            onPressed: _handleBackNavigation,
           ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        const SizedBox(width: Sizes.s8),
+          const SizedBox(width: Sizes.s8),
+        ],
 
         // Search Title
         Expanded(
@@ -307,14 +384,22 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildKeywordChip(String keyword) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Sizes.s16, vertical: Sizes.s8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(Sizes.s20),
-        border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300, width: 1),
+    return GestureDetector(
+      onTap: () {
+        // Set the search text and trigger search
+        _searchController.text = keyword;
+        _focusNode.unfocus(); // Remove focus from search field
+        _onSearchChanged(keyword); // Trigger search immediately
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: Sizes.s16, vertical: Sizes.s8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(Sizes.s20),
+          border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300, width: 1),
+        ),
+        child: Text(keyword, style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.onSurface)),
       ),
-      child: Text(keyword, style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.onSurface)),
     );
   }
 
@@ -603,7 +688,6 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildProductCard(FoodItem product) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cartController = DependencyInjection.instance.cartController;
 
     return GestureDetector(
       onTap: () {
@@ -666,17 +750,8 @@ class _SearchScreenState extends State<SearchScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '\$${product.basePrice.toInt()}',
+                          CurrencyFormatter.formatInt(product.basePrice),
                           style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFFFF6B35)),
-                        ),
-                        GestureDetector(
-                          onTap: () => _addToCart(product),
-                          child: Container(
-                            width: Sizes.s32,
-                            height: Sizes.s32,
-                            decoration: const BoxDecoration(color: Color(0xFFFF6B35), shape: BoxShape.circle),
-                            child: const Icon(TablerIconsHelper.plus, color: Colors.white, size: Sizes.s16),
-                          ),
                         ),
                       ],
                     ),
@@ -771,53 +846,6 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _addToCart(FoodItem item) {
-    final cartController = DependencyInjection.instance.cartController;
-
-    // Get default variation and flavor if available
-    String? defaultVariation;
-    double finalPrice = item.basePrice;
-
-    if (item.variations != null && item.variations!.isNotEmpty) {
-      defaultVariation = item.variations!.first.name;
-      finalPrice = item.variations!.first.price;
-    }
-
-    // Create cart item
-    final cartItem = CartItem(
-      id: item.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      name: item.name,
-      imageUrl: item.imageUrl,
-      price: finalPrice,
-      size: defaultVariation ?? 'Regular',
-      quantity: 1,
-      selectedVariation: defaultVariation,
-      selectedFlavor: null,
-      productId: item.id,
-      restaurantId: item.restaurantId,
-      restaurantName: item.restaurantName,
-      basePrice: item.basePrice,
-    );
-
-    // Add to cart
-    cartController.addToCart(cartItem);
-
-    // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Added ${item.name} to cart'),
-        backgroundColor: const Color(0xFFFF6B35),
-        action: SnackBarAction(
-          label: 'View Cart',
-          textColor: Colors.white,
-          onPressed: () {
-            Navigator.pushNamed(context, Routes.cart);
-          },
         ),
       ),
     );

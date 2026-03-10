@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:food_flow_app/core/firebase/firebase_service.dart';
-import 'package:food_flow_app/core/base/base_datasource.dart';
-import 'package:food_flow_app/modules/auth/models/user_model.dart';
+import 'package:downtown/core/firebase/firebase_service.dart';
+import 'package:downtown/core/base/base_datasource.dart';
+import 'package:downtown/modules/auth/models/user_model.dart';
 
 /// Remote DataSource for Authentication (Firebase Auth + Firestore)
 class AuthRemoteDataSource implements RemoteDataSource<UserModel> {
@@ -144,4 +144,25 @@ class AuthRemoteDataSource implements RemoteDataSource<UserModel> {
 
   /// Stream auth state changes
   Stream<User?> get authStateChanges => _auth.authStateChanges();
+
+  /// Get Firestore instance (for repository use)
+  FirebaseFirestore get firestore => _firestore;
+
+  /// Check if user exists by email in Firestore
+  Future<Map<String, dynamic>?> checkUserByEmail(String email) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: email.toLowerCase().trim())
+          .limit(1)
+          .get();
+      
+      if (querySnapshot.docs.isNotEmpty) {
+        return {'id': querySnapshot.docs.first.id, ...querySnapshot.docs.first.data()};
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 }

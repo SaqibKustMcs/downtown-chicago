@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:food_flow_app/modules/onboarding/models/onboarding_page_model.dart';
-import 'package:food_flow_app/styles/colors/custom_colors.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/modules/onboarding/models/onboarding_page_model.dart';
+import 'package:downtown/styles/colors/custom_colors.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class OnboardingPageWidget extends StatelessWidget {
   final OnboardingPageModel page;

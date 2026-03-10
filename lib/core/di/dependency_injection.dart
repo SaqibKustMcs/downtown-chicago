@@ -1,11 +1,11 @@
-import 'package:food_flow_app/core/firebase/firebase_service.dart';
-import 'package:food_flow_app/modules/auth/datasources/auth_remote_datasource.dart';
-import 'package:food_flow_app/modules/auth/datasources/auth_local_datasource.dart';
-import 'package:food_flow_app/modules/auth/repositories/auth_repository.dart';
-import 'package:food_flow_app/modules/auth/services/auth_service.dart';
-import 'package:food_flow_app/modules/auth/controllers/auth_controller.dart';
-import 'package:food_flow_app/modules/checkout/controllers/cart_controller.dart';
-import 'package:food_flow_app/modules/favorites/controllers/favorites_controller.dart';
+import 'package:downtown/core/firebase/firebase_service.dart';
+import 'package:downtown/modules/auth/datasources/auth_remote_datasource.dart';
+import 'package:downtown/modules/auth/datasources/auth_local_datasource.dart';
+import 'package:downtown/modules/auth/repositories/auth_repository.dart';
+import 'package:downtown/modules/auth/services/auth_service.dart';
+import 'package:downtown/modules/auth/controllers/auth_controller.dart';
+import 'package:downtown/modules/checkout/controllers/cart_controller.dart';
+import 'package:downtown/modules/favorites/controllers/favorites_controller.dart';
 
 /// Dependency Injection Container
 /// Centralized dependency management

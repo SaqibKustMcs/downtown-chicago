@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:food_flow_app/core/di/dependency_injection.dart';
-import 'package:food_flow_app/modules/auth/widgets/auth_header.dart';
-import 'package:food_flow_app/modules/auth/widgets/custom_text_field.dart';
-import 'package:food_flow_app/routes/route_constants.dart';
-import 'package:food_flow_app/styles/colors/custom_colors.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/di/dependency_injection.dart';
+import 'package:downtown/modules/auth/widgets/auth_header.dart';
+import 'package:downtown/modules/auth/widgets/custom_text_field.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/colors/custom_colors.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class UpdatePasswordScreen extends StatefulWidget {
   final dynamic arguments; // Can be String email or Map with email and code
@@ -78,6 +78,35 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
         }
 
         if (success && mounted) {
+          // After password reset, check if user needs email verification
+          final firebaseUser = FirebaseAuth.instance.currentUser;
+          if (firebaseUser != null) {
+            await firebaseUser.reload();
+            final updatedUser = FirebaseAuth.instance.currentUser;
+            
+            // If email is not verified, sign out and redirect to verification
+            if (updatedUser != null && !updatedUser.emailVerified) {
+              await authController.signOut();
+              
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Password updated. Please verify your email before signing in.'),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 4),
+                  ),
+                );
+                
+                Navigator.pushReplacementNamed(
+                  context,
+                  Routes.verification,
+                  arguments: updatedUser.email ?? _email,
+                );
+                return;
+              }
+            }
+          }
+          
           // Navigate to success screen
           Navigator.pushReplacementNamed(
             context,

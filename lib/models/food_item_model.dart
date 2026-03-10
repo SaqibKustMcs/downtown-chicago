@@ -71,6 +71,8 @@ class FoodItem {
   final String? categoryName; // Denormalized category name
   final bool isAvailable;
   final bool isActive;
+  final bool isPopular; // Whether product should be shown in "Popular Products" section
+  final int displayOrder; // Order for displaying products within category (lower = shown first)
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -89,6 +91,8 @@ class FoodItem {
     this.categoryName,
     this.isAvailable = true,
     this.isActive = true,
+    this.isPopular = false,
+    this.displayOrder = 0,
     this.createdAt,
     this.updatedAt,
   });
@@ -134,6 +138,8 @@ class FoodItem {
       categoryName: data['categoryName'],
       isAvailable: data['isAvailable'] ?? true,
       isActive: data['isActive'] ?? true,
+      isPopular: data['isPopular'] ?? false,
+      displayOrder: data['displayOrder'] ?? 0,
       createdAt: data['createdAt'] != null
           ? (data['createdAt'] as Timestamp).toDate()
           : null,
@@ -161,6 +167,8 @@ class FoodItem {
       if (categoryName != null) 'categoryName': categoryName,
       'isAvailable': isAvailable,
       'isActive': isActive,
+      'isPopular': isPopular,
+      'displayOrder': displayOrder,
       if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
       if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
     };
@@ -182,6 +190,8 @@ class FoodItem {
     String? categoryName,
     bool? isAvailable,
     bool? isActive,
+    bool? isPopular,
+    int? displayOrder,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -200,6 +210,8 @@ class FoodItem {
       categoryName: categoryName ?? this.categoryName,
       isAvailable: isAvailable ?? this.isAvailable,
       isActive: isActive ?? this.isActive,
+      isPopular: isPopular ?? this.isPopular,
+      displayOrder: displayOrder ?? this.displayOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

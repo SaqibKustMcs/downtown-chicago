@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:food_flow_app/core/widgets/animated_list_item.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/core/di/dependency_injection.dart';
-import 'package:food_flow_app/modules/favorites/controllers/favorites_controller.dart';
-import 'package:food_flow_app/models/food_item_model.dart';
-import 'package:food_flow_app/modules/widgets/top_navigation_bar.dart';
-import 'package:food_flow_app/routes/route_constants.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/widgets/animated_list_item.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/core/utils/currency_formatter.dart';
+import 'package:downtown/core/di/dependency_injection.dart';
+import 'package:downtown/modules/favorites/controllers/favorites_controller.dart';
+import 'package:downtown/models/food_item_model.dart';
+import 'package:downtown/modules/widgets/top_navigation_bar.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class FavoriteItemsScreen extends StatefulWidget {
   const FavoriteItemsScreen({super.key});
@@ -205,7 +206,7 @@ class _FavoriteItemsScreenState extends State<FavoriteItemsScreen> {
                       children: [
                         const SizedBox(),
                         Text(
-                          '\$${item.basePrice.toInt()}',
+                          CurrencyFormatter.formatInt(item.basePrice),
                           style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFFFF6B35)),
                         ),
                       ],
@@ -231,10 +232,16 @@ class _FavoriteItemsScreenState extends State<FavoriteItemsScreen> {
                     );
 
                     if (success && mounted) {
+                      final isDark = Theme.of(context).brightness == Brightness.dark;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('${item.name} removed from favorites'),
-                          backgroundColor: Theme.of(context).cardColor,
+                          content: Text(
+                            '${item.name} removed from favorites',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                          backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade900,
                           behavior: SnackBarBehavior.floating,
                         ),
                       );

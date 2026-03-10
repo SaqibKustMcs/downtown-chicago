@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:food_flow_app/styles/colors/custom_colors.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
+import 'package:flutter/services.dart';
+import 'package:downtown/styles/colors/custom_colors.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
 
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -8,11 +9,17 @@ class CustomTextField extends StatelessWidget {
   final bool obscureText;
   final TextInputType keyboardType;
   final Widget? suffixIcon;
+  final Widget? prefixIcon;
   final String? Function(String?)? validator;
   final FocusNode? focusNode;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
+  final ValueChanged<String>? onChanged;
   final int? maxLines;
+  final List<TextInputFormatter>? inputFormatters;
+  final bool enabled;
+  /// Custom error text shown below the field (reactive). When set, overrides validator error.
+  final String? errorText;
 
   const CustomTextField({
     super.key,
@@ -21,11 +28,16 @@ class CustomTextField extends StatelessWidget {
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
     this.suffixIcon,
+    this.prefixIcon,
     this.validator,
     this.focusNode,
     this.textInputAction,
     this.onSubmitted,
+    this.onChanged,
     this.maxLines,
+    this.inputFormatters,
+    this.enabled = true,
+    this.errorText,
   });
 
   @override
@@ -38,8 +50,11 @@ class CustomTextField extends StatelessWidget {
       keyboardType: keyboardType,
       textInputAction: textInputAction,
       onFieldSubmitted: onSubmitted,
-      validator: validator,
+      onChanged: onChanged,
+      validator: errorText != null ? (_) => errorText : validator,
       maxLines: maxLines ?? 1,
+      inputFormatters: inputFormatters,
+      enabled: enabled,
       style: TextStyle(
         color: isDark
             ? Theme.of(context).colorScheme.onSurface
@@ -93,6 +108,8 @@ class CustomTextField extends StatelessWidget {
             width: 2,
           ),
         ),
+        errorText: errorText,
+        prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
       ),
     );

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:food_flow_app/core/utils/tabler_icons_helper.dart';
-import 'package:food_flow_app/modules/widgets/top_navigation_bar.dart';
-import 'package:food_flow_app/routes/route_constants.dart';
-import 'package:food_flow_app/styles/layouts/sizes.dart';
-import 'package:food_flow_app/styles/typography/app_text_styles.dart';
+import 'package:downtown/core/utils/tabler_icons_helper.dart';
+import 'package:downtown/modules/widgets/top_navigation_bar.dart';
+import 'package:downtown/routes/route_constants.dart';
+import 'package:downtown/styles/layouts/sizes.dart';
+import 'package:downtown/styles/typography/app_text_styles.dart';
 
 class AdminHubScreen extends StatelessWidget {
   const AdminHubScreen({super.key});
@@ -144,12 +144,7 @@ class AdminHubScreen extends StatelessWidget {
                           subtitle: 'View orders',
                           color: Colors.green,
                           onTap: () {
-                            // TODO: Navigate to orders management
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Orders management coming soon'),
-                              ),
-                            );
+                            Navigator.pushNamed(context, Routes.adminOrders);
                           },
                         ),
                         _buildAdminFeatureCard(
@@ -174,12 +169,7 @@ class AdminHubScreen extends StatelessWidget {
                           subtitle: 'Manage riders',
                           color: Colors.orange,
                           onTap: () {
-                            // TODO: Navigate to riders management
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Riders management coming soon'),
-                              ),
-                            );
+                            Navigator.pushNamed(context, Routes.adminRiders);
                           },
                         ),
                         _buildAdminFeatureCard(
@@ -199,17 +189,22 @@ class AdminHubScreen extends StatelessWidget {
                         ),
                         _buildAdminFeatureCard(
                           context: context,
+                          icon: Icons.star_rate,
+                          title: 'Reviews',
+                          subtitle: 'Manage reviews',
+                          color: Colors.amber,
+                          onTap: () {
+                            Navigator.pushNamed(context, Routes.adminReviews);
+                          },
+                        ),
+                        _buildAdminFeatureCard(
+                          context: context,
                           icon: Icons.settings,
                           title: 'Settings',
                           subtitle: 'Admin settings',
                           color: Colors.grey,
                           onTap: () {
-                            // TODO: Navigate to admin settings
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Admin settings coming soon'),
-                              ),
-                            );
+                            Navigator.pushNamed(context, Routes.adminSettings);
                           },
                         ),
                       ],
@@ -258,7 +253,7 @@ class AdminHubScreen extends StatelessWidget {
                           child: _buildStatCard(
                             context: context,
                             title: 'Revenue',
-                            value: '\$0',
+                            value: 'Rs. 0',
                             icon: Icons.attach_money,
                             color: Colors.blue,
                           ),

@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:5238107802:android:e412c5646aaaf0a533b923",
+        "mobilesdk_app_id": "1:5238107802:android:2916b446302b16f533b923",
         "android_client_info": {
-          "package_name": "com.app.food_flow_app"
+          "package_name": "com.app.downtown"
         }
       },
       "oauth_client": [],

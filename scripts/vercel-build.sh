@@ -12,9 +12,15 @@ if [ ! -x ".flutter_sdk/bin/flutter" ]; then
 fi
 export PATH="$ROOT/.flutter_sdk/bin:$PATH"
 
-# Ensure we have dependencies and build
 flutter doctor -v || true
 flutter pub get
-flutter build web
+
+# Use HTML renderer to reduce memory and avoid CanvasKit download (helps on Vercel's limited memory).
+# If this still fails, build locally: flutter build web && deploy the build/web folder.
+echo "Building Flutter web (HTML renderer)..."
+if ! flutter build web --web-renderer html; then
+  echo "Build failed. Try building locally: flutter build web && deploy build/web"
+  exit 1
+fi
 
 echo "Build complete: build/web"

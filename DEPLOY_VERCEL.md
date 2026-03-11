@@ -18,7 +18,7 @@
 | **Output Directory** | `build/web` |
 | **Install Command** | *(leave empty)* |
 
-The script `scripts/vercel-build.sh` installs Flutter and runs the web build **in the same shell**, so `flutter` is on PATH (avoids "flutter: command not found" on Vercel).
+The script `scripts/vercel-build.sh` installs Flutter and runs the web build **in the same shell**, so `flutter` is on PATH. It uses `--web-renderer html` to reduce memory use on Vercel.
 
 **Alternative (if you prefer separate install):** Set Install Command to:
 `git clone https://github.com/flutter/flutter.git -b stable --depth 1 .flutter_sdk && ./.flutter_sdk/bin/flutter pub get`
@@ -30,15 +30,19 @@ and Build Command to:
 
 Click **Deploy**. Vercel will install Flutter, run `flutter build web`, and serve `build/web` using `vercel.json` routes.
 
-## 4. Optional: build locally and deploy only `build/web`
+## 4. Optional: build locally and deploy only `build/web` (recommended if Vercel build fails)
 
-Faster and more reliable:
+If the build fails on Vercel (e.g. "Failed to compile" or out of memory), build on your machine and deploy the output:
 
-```bash
-flutter build web
-```
+1. **Locally:** Run `flutter build web` (or `flutter build web --web-renderer html`).
+2. **Deploy the folder:** In Vercel, set **Build Command** to empty, **Output Directory** to `build/web`, and **Install Command** to empty. Commit the `build/web` folder to a branch (e.g. `deploy`) and connect that branch, or use [Vercel CLI](https://vercel.com/docs/cli) to deploy only `build/web`:
 
-Then in Vercel, set **Output Directory** to `build/web` and use a static build (no install/build commands), or use Vercel CLI to deploy the `build/web` folder.
+   ```bash
+   flutter build web
+   cd build/web && vercel --prod
+   ```
+
+This avoids running Flutter on Vercel and is more reliable.
 
 ---
 

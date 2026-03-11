@@ -1,60 +1,77 @@
-# Deploy Flutter Web on Vercel
+# Deploy Flutter Web to Vercel
 
-**Working setup:** Use the build script so Flutter is on PATH (fixes exit 127). Set Build Command in dashboard to `bash scripts/vercel-build.sh`, Install Command empty.
-
-## 1. Import project
-
-1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-2. **Add New** → **Project**
-3. Import your GitHub repo: `SaqibKustMcs/downtown-chicago`
-4. Click **Import**
-
-## 2. Build settings (in Vercel)
-
-- **Framework Preset:** `Other`
-- **Root Directory:** leave empty
-
-| Setting            | Value |
-|--------------------|--------|
-| **Output Directory** | `build/web` |
-| **Build Command**  | `bash scripts/vercel-build.sh` |
-| **Install Command** | *(leave empty)* |
-
-`vercel.json` in the repo already sets:
-- **outputDirectory:** `build/web`
-- **rewrites:** all routes → `/index.html` (SPA)
-
-No need to override these in the dashboard unless you want to build on Vercel with the script below.
-
-### Optional: build on Vercel (if "flutter: command not found")
-
-If the build fails because `flutter` isn’t on PATH, use the single script so install and build run in the same shell:
-
-| Setting            | Value |
-|--------------------|--------|
-| **Install Command** | *(leave empty)* |
-| **Build Command**  | `bash scripts/vercel-build.sh` |
-
-The script installs Flutter and runs `flutter build web --web-renderer html`.
-
-## 3. Deploy
-
-Click **Deploy**. Vercel will install Flutter, run `flutter build web`, and serve `build/web` using `vercel.json` routes.
-
-## 4. Optional: build locally and deploy only `build/web` (recommended if Vercel build fails)
-
-If the build fails on Vercel (e.g. "Failed to compile" or out of memory), build on your machine and deploy the output:
-
-1. **Locally:** Run `flutter build web` (or `flutter build web --web-renderer html`).
-2. **Deploy the folder:** In Vercel, set **Build Command** to empty, **Output Directory** to `build/web`, and **Install Command** to empty. Commit the `build/web` folder to a branch (e.g. `deploy`) and connect that branch, or use [Vercel CLI](https://vercel.com/docs/cli) to deploy only `build/web`:
-
-   ```bash
-   flutter build web
-   cd build/web && vercel --prod
-   ```
-
-This avoids running Flutter on Vercel and is more reliable.
+**Recommended:** Build locally and deploy the `build/web` folder. Vercel does not have Flutter installed, so building on Vercel often fails or is slow.
 
 ---
 
-`vercel.json` in the project root configures static serving and SPA routing (all routes → `index.html`).
+## ✅ Recommended: Build locally + Vercel CLI (~30 seconds)
+
+### 1. Build Flutter web
+
+```bash
+flutter build web --web-renderer html
+```
+
+This creates `build/web/`.
+
+### 2. Install Vercel CLI (one time)
+
+```bash
+npm install -g vercel
+```
+
+### 3. Deploy
+
+From the project root:
+
+```bash
+./scripts/deploy-vercel.sh
+```
+
+Or manually:
+
+```bash
+flutter build web --web-renderer html
+cp config/vercel-build-web.json build/web/vercel.json
+cd build/web
+vercel
+```
+
+For production:
+
+```bash
+cd build/web
+vercel --prod
+```
+
+The script copies `config/vercel-build-web.json` into `build/web/vercel.json` so SPA routing works (no 404 on refresh).
+
+---
+
+## Alternative: GitHub auto-deploy (build on Vercel)
+
+If you want Vercel to build from GitHub, configure the project:
+
+| Setting | Value |
+|--------|--------|
+| **Build Command** | `bash scripts/vercel-build.sh` |
+| **Output Directory** | `build/web` |
+| **Install Command** | *(leave empty)* |
+
+The script `scripts/vercel-build.sh` installs Flutter and runs the build in one shell. This can fail on Vercel (memory/time) — if so, use the recommended local build above.
+
+---
+
+## Other platforms
+
+Flutter web is often easier on:
+
+- **Firebase Hosting** – `firebase deploy` after `flutter build web`
+- **Netlify** – drag-and-drop `build/web` or connect repo with build command
+- **Cloudflare Pages** – connect repo, build command `flutter build web`, output `build/web`
+
+---
+
+## Root `vercel.json`
+
+The `vercel.json` in the project root is used when the repo is connected to Vercel and build runs on their side. For the “deploy only build/web” flow, the config is in `build/web/vercel.json` (copied from `config/vercel-build-web.json` by the script).

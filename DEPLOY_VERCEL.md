@@ -1,6 +1,6 @@
 # Deploy Flutter Web on Vercel
 
-**Working setup:** Minimal `vercel.json` (output directory + SPA rewrites). Configure Build Command and Install Command in the Vercel dashboard.
+**Working setup:** Use the build script so Flutter is on PATH (fixes exit 127). Set Build Command in dashboard to `bash scripts/vercel-build.sh`, Install Command empty.
 
 ## 1. Import project
 
@@ -17,8 +17,8 @@
 | Setting            | Value |
 |--------------------|--------|
 | **Output Directory** | `build/web` |
-| **Build Command**  | `flutter build web` (or leave default) |
-| **Install Command** | Your Flutter install + `flutter pub get` (e.g. clone Flutter then `flutter pub get`) |
+| **Build Command**  | `bash scripts/vercel-build.sh` |
+| **Install Command** | *(leave empty)* |
 
 `vercel.json` in the repo already sets:
 - **outputDirectory:** `build/web`

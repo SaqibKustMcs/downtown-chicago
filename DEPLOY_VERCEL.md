@@ -1,5 +1,7 @@
 # Deploy Flutter Web on Vercel
 
+**Working setup:** Minimal `vercel.json` (output directory + SPA rewrites). Configure Build Command and Install Command in the Vercel dashboard.
+
 ## 1. Import project
 
 1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
@@ -14,17 +16,26 @@
 
 | Setting            | Value |
 |--------------------|--------|
-| **Build Command**  | `bash scripts/vercel-build.sh` |
 | **Output Directory** | `build/web` |
+| **Build Command**  | `flutter build web` (or leave default) |
+| **Install Command** | Your Flutter install + `flutter pub get` (e.g. clone Flutter then `flutter pub get`) |
+
+`vercel.json` in the repo already sets:
+- **outputDirectory:** `build/web`
+- **rewrites:** all routes → `/index.html` (SPA)
+
+No need to override these in the dashboard unless you want to build on Vercel with the script below.
+
+### Optional: build on Vercel (if "flutter: command not found")
+
+If the build fails because `flutter` isn’t on PATH, use the single script so install and build run in the same shell:
+
+| Setting            | Value |
+|--------------------|--------|
 | **Install Command** | *(leave empty)* |
+| **Build Command**  | `bash scripts/vercel-build.sh` |
 
-The script `scripts/vercel-build.sh` installs Flutter and runs the web build **in the same shell**, so `flutter` is on PATH. It uses `--web-renderer html` to reduce memory use on Vercel.
-
-**Alternative (if you prefer separate install):** Set Install Command to:
-`git clone https://github.com/flutter/flutter.git -b stable --depth 1 .flutter_sdk && ./.flutter_sdk/bin/flutter pub get`
-and Build Command to:
-`./.flutter_sdk/bin/flutter build web`
-(Use the **full path** to `flutter` in the Build Command so it works even when PATH is not set.)
+The script installs Flutter and runs `flutter build web --web-renderer html`.
 
 ## 3. Deploy
 

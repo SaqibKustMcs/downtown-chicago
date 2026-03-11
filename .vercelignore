@@ -1,0 +1,28 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+*.iml
+.idea/
+*.dart_tool
+
+# Build outputs (Vercel runs flutter build web; no need to upload these)
+build/
+android/
+ios/
+linux/
+macos/
+windows/
+
+# Env and secrets (never deploy)
+.env
+.env.*
+*.jks
+*.keystore
+GoogleService-Info.plist
+google-services.json
+firebase_options.dart
+
+# Misc
+.git/
+*.log
+.DS_Store
